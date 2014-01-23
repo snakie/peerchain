@@ -50,8 +50,9 @@
         seconds: "less than a minute",
         minute: "about a minute",
         minutes: "%d minutes",
-        hour: "about an hour",
-        hours: "about %d hours",
+        hour: "%h hour %m minutes",
+        hours: "%h hours %m minutes",
+        abhours: "about %d hours",
         day: "a day",
         days: "%d days",
         month: "about a month",
@@ -76,6 +77,8 @@
       var seconds = Math.abs(distanceMillis) / 1000;
       var minutes = seconds / 60;
       var hours = minutes / 60;
+      var hoursinmin = Math.floor(hours) * 60;
+      var minutesnohour = minutes - hoursinmin;
       var days = hours / 24;
       var years = days / 365;
 
@@ -83,13 +86,31 @@
         var string = $.isFunction(stringOrFunction) ? stringOrFunction(number, distanceMillis) : stringOrFunction;
         var value = ($l.numbers && $l.numbers[number]) || number;
         return string.replace(/%d/i, value);
+      };
+      function subhourmin(h, m) {
+        var s;
+        if (h == 1) {
+            s = "1 hour ";
+        } else if (h > 1) {
+            s = h+" hours ";
+        }
+
+        if (m == 1) {
+            s = s + "1 minute";
+        } else if (m > 1) {
+            s = s+m+" minutes";
+        }
+        return s;
+        s = s.replace(/%h/i, h);
+        return s.replace(/%m/i, m);
       }
 
       var words = seconds < 45 && substitute($l.seconds, Math.round(seconds)) ||
         seconds < 90 && substitute($l.minute, 1) ||
-        minutes < 45 && substitute($l.minutes, Math.round(minutes)) ||
-        minutes < 90 && substitute($l.hour, 1) ||
-        hours < 24 && substitute($l.hours, Math.round(hours)) ||
+        minutes < 60 && substitute($l.minutes, Math.round(minutes)) ||
+        minutes < 120 && subhourmin(Math.floor(hours), Math.floor(minutesnohour)) ||
+        minutes < 360 && subhourmin(Math.floor(hours), Math.floor(minutesnohour)) ||
+        hours < 24 && substitute($l.abhours, Math.floor(hours)) ||
         hours < 42 && substitute($l.day, 1) ||
         days < 30 && substitute($l.days, Math.round(days)) ||
         days < 45 && substitute($l.month, 1) ||
