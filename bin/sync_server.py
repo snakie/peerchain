@@ -105,7 +105,7 @@ class Database(object):
           #except Exception as e:
           #    return str(e)
     def insert_block(self,block):
-        print block
+        #print block
         future = self.session.execute_async(self.block_query,block)
         #try:
         rows = future.result()
@@ -141,13 +141,15 @@ if __name__ == "__main__":
             else:
                 if daemon_hash != db_hash:
                     print "warning ppc client and database lastest blocks differ!"
+                    print "daemon: "+daemon_hash
+                    print "db    : "+db_hash
                 else:
                     if v: print "ppc client and database newest chains in sync"
         # insert recently found blocks
         for i in reversed(range(diff)):
             id = peercoin_height - i;
             hash = daemon.conn.getblockhash(id)
-            print "processing block: "+str(id)+" ("+hash+")"
+            print "\nprocessing block: "+str(id)+" ("+hash+")"
             block = daemon.conn.getblock(hash)
             data = daemon.fill_in_data(hash,block)
             db.insert_block(data)
