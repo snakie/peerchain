@@ -10,7 +10,7 @@ $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
        cells.push("<td>"+parseFloat(block.diff).toPrecision(10)+"</td>");
        cells.push("<td>"+block.reward+"</td>");
        cells.push("<td>"+block.txcount+"</td>");
-       cells.push("<td>"+block.sent+"</td>");
+       cells.push("<td>"+block.received+"</td>");
        cells.push("<td>"+block.destroyed+"</td>");
        cells.push("</tr>");
        $("#blocks").append(cells.join(""));
