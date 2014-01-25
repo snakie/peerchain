@@ -28,7 +28,7 @@ class Notify(object):
         rdata = res.read()
         print rdata,
         conn.close()
-        sys.exit(0);
+        #sys.exit(0);
 
 class Peercoin(object):
     def __init__(self):
@@ -180,8 +180,8 @@ if __name__ == "__main__":
             print "\nprocessing block: "+str(id)+" ("+hash+")"
             block = daemon.conn.getblock(hash)
             data = daemon.fill_in_data(hash,block)
-            notify.post(data,block["time"])
             db.insert_block(data)
+            notify.post(data,block["time"])
             print "entering sleep..",
             #sys.exit(1)
         print ".",
