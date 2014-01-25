@@ -1,9 +1,34 @@
 #!/usr/local/bin/python
 
-import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime
+import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json
 from decimal import Decimal
 from cassandra.cluster import Cluster
 from cassandra.query import SimpleStatement
+
+
+class Notify(object):
+    def __init__(self,host,port,uri):
+        self.host = host
+        self.port = port
+        self.uri = uri
+    def block_to_json(self,block,time):
+        block["staked"] = format(block["staked"] / 1e6,'.6f')
+        block["diff"] = format(block["diff"],'.8f')
+        block["reward"] = format(block["reward"] / 1e6,'.6f')
+        block["sent"] = format(block["sent"] / 1e6,'.6f')
+        block["received"] = format(block["received"] / 1e6,'.6f')
+        block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
+        block["time"] = time
+        return block
+    def post(self,data,time):
+        conn = httplib.HTTPConnection(self.host,self.port)
+        conn.request("POST", self.uri, json.dumps(self.block_to_json(data,time)))
+        res = conn.getresponse()
+        print "block post status: "+str(res.status)+' '+res.reason
+        rdata = res.read()
+        print rdata,
+        conn.close()
+        sys.exit(0);
 
 class Peercoin(object):
     def __init__(self):
@@ -120,6 +145,7 @@ class Database(object):
 if __name__ == "__main__":
     daemon = Peercoin()
     db = Database()
+    notify = Notify('localhost',8080,'/broadcast')
     exit = 0
     v = False
     print "starting peercoin syncer.."
@@ -142,7 +168,7 @@ if __name__ == "__main__":
             else:
                 if daemon_hash != db_hash:
                     print "warning ppc client and database lastest blocks differ!"
-                    print >> sys.stderr "warning ppc client and database lastest blocks differ!"
+                    print >> sys.stderr, "warning ppc client and database lastest blocks differ!"
                     print "daemon: "+daemon_hash
                     print "db    : "+db_hash
                 else:
@@ -154,6 +180,7 @@ if __name__ == "__main__":
             print "\nprocessing block: "+str(id)+" ("+hash+")"
             block = daemon.conn.getblock(hash)
             data = daemon.fill_in_data(hash,block)
+            notify.post(data,block["time"])
             db.insert_block(data)
             print "entering sleep..",
             #sys.exit(1)
