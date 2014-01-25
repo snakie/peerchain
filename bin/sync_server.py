@@ -9,6 +9,7 @@ class Peercoin(object):
     def __init__(self):
         self.creds = self.get_rpc_creds()
         self.connect_to_daemon()
+        self.pos = re.compile("proof-of-stake")
     def get_rpc_creds(self): 
         home = os.getenv("HOME")
         conf = open(home+'/.ppcoin/ppcoin.conf','r')
@@ -31,7 +32,7 @@ class Peercoin(object):
         data["id"] = block["height"]
         data["hash"] = hash
         data["chain"] = 0
-        if block["flags"] == "proof-of-stake":
+        if self.pos.match(block["flags"]):
             data["pos"] = True
         else: 
             data["pos"] = False
@@ -141,6 +142,7 @@ if __name__ == "__main__":
             else:
                 if daemon_hash != db_hash:
                     print "warning ppc client and database lastest blocks differ!"
+                    print >> sys.stderr "warning ppc client and database lastest blocks differ!"
                     print "daemon: "+daemon_hash
                     print "db    : "+db_hash
                 else:

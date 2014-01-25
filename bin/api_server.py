@@ -134,6 +134,13 @@ class LastStats(object):
         id = self.blockchain.get_block_count() - 1
         return json.dumps(self.blockchain.get_stats(id))
 
+class BlockCount(object):
+    exposed = True
+    def __init__(self,blockchain):
+        self.blockchain = blockchain
+    def GET (self):
+        return json.dumps(self.blockchain.get_block_count() - 1)
+
 class Index(object):
     exposed = True
     def GET(self):
@@ -155,6 +162,7 @@ blockchain = Blockchain()
 
 api.blocks = Blocks(blockchain)
 api.blocks.last = LastBlock(blockchain)
+api.blocks.count = BlockCount(blockchain)
 
 api.stats = Stats(blockchain)
 api.stats.last = LastStats(blockchain)
