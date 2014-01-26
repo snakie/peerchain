@@ -174,7 +174,7 @@ class Syncer(object):
         self.db = Database()
         self.dryrun = self.options.dryrun
         self.daemon = Peercoin()
-        self.notify = Notify('localhost',8080,'/broadcast')
+        self.notify = Notify('localhost',8080,'/broadcast/block')
     def parse_args(self):
         version = '0.0.1'
         self.parser = OptionParser(usage="\nPeercoin Daemon Sync Utility "+version+"\nSync's the lastest blocks into the database by default\n$ %prog [options]", version="%prog "+version)
@@ -212,7 +212,7 @@ class Syncer(object):
                 logging.warning("daemon: "+daemon_hash)
                 logging.warning("db    : "+db_hash)
             else:
-                logging.debug("ppc client and database newest chains in sync")
+                logging.info("ppc client and database newest chains in sync")
     def process_id(self):
         self.get_heights()
         hash = self.daemon.conn.getblockhash(int(self.id))
