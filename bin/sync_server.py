@@ -83,6 +83,7 @@ class Peercoin(object):
         count = 0
         for tx in block["tx"]:
             txdata = self.conn.gettransaction(tx)
+            #logging.debug(txdata)
             for txn in txdata.transaction:
                 for out in txn["outpoints"]:
                     data["received"] += long(out["value"])
@@ -91,7 +92,6 @@ class Peercoin(object):
             if data["pos"] and count < 2:
                 data["staked"] += data["sent"]
             count += 1
-            #print txdata
         if data["pos"]:
             data["sent"] = data["sent"] - data["staked"]
             data["received"] = data["received"] - data["staked"] - data["reward"]
