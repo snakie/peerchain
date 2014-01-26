@@ -39,32 +39,18 @@ function update_last_block(block) {
     }
 }
 
+var connected = false;
 
 jQuery(document).ready(function() {
-$("abbr.timeago").timeago()
-//var ws = new WebSocket("ws://"+window.location.host+"/ws/blocks.b5");
-//$(ws).bind('message', function(e) { 
-//            data = e.originalEvent.data;
-//            console.log('web socket message:')
-//            console.log(data);
-//            var json = $.parseJSON(data);
-//           json.time = json.time.replace(' UTC','+0000')
-//            var cells = block_to_row(json);
-//            $("#table_header").after(cells.join(""));
-//            $("abbr.timeago").timeago()
-//       }
-//  );
-//
 var pushstream = new PushStream({
     host: window.location.hostname,
     port: window.location.port,
     modes: "websocket",
-    messagesPublishedAfter: 600,
+    messagesPublishedAfter: 1800,
     messagesControlByArgument: true
 });
 pushstream.onmessage = message_received;
 pushstream.addChannel('block');
-pushstream.connect()
 $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
     var blocks = json.blocks;
     $.each( blocks, function( index, block ) {
@@ -72,6 +58,10 @@ $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
        update_last_block(block);
        $("#blocks").append(cells.join(""));
        $("abbr.timeago").timeago()
+       if(!connected) {
+        connected = true;
+        pushstream.connect();
+       }
     });
    }
 });
