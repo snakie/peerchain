@@ -1,3 +1,5 @@
+var last_block = 0;
+
 function block_to_row(block) {
        var cells = [];
        cells.push("<tr>");
@@ -12,14 +14,29 @@ function block_to_row(block) {
        cells.push("</tr>");
        return cells;
 }
+function add_block(block) {
+    block.time = block.time.replace(' UTC','+0000')
+    update_last_block(block);
+    var cells = block_to_row(block);
+    $("#table_header").after(cells.join(""));
+    $("abbr.timeago").timeago()
+
+}
 function message_received(text, id, channel) {
     console.log('web socket message on channel: "'+channel+'" id: "'+id+'"')
     console.log(text);
-    var json = $.parseJSON(text);
-    json.time = json.time.replace(' UTC','+0000')
-    var cells = block_to_row(json);
-    $("#table_header").after(cells.join(""));
-    $("abbr.timeago").timeago()
+    if (channel == 'block') {
+        if(text.id > last_block) {
+            add_block(text);
+        } else {
+            console.log("block too old")
+        }
+    }
+}
+function update_last_block(block) {
+    if (last_block < block.id) {
+        last_block = block.id;
+    }
 }
 
 
@@ -42,7 +59,7 @@ var pushstream = new PushStream({
     host: window.location.hostname,
     port: window.location.port,
     modes: "websocket",
-    messagesPublishedAfter: 300,
+    messagesPublishedAfter: 600,
     messagesControlByArgument: true
 });
 pushstream.onmessage = message_received;
@@ -52,6 +69,7 @@ $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
     var blocks = json.blocks;
     $.each( blocks, function( index, block ) {
        var cells = block_to_row(block)
+       update_last_block(block);
        $("#blocks").append(cells.join(""));
        $("abbr.timeago").timeago()
     });
