@@ -1,7 +1,8 @@
 #!/usr/local/bin/python
 
-import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json
+import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json, logging
 from decimal import Decimal
+from optparse import OptionParser
 from cassandra.cluster import Cluster
 from cassandra.query import SimpleStatement
 
@@ -24,9 +25,11 @@ class Notify(object):
         conn = httplib.HTTPConnection(self.host,self.port)
         conn.request("POST", self.uri, json.dumps(self.block_to_json(data,time)))
         res = conn.getresponse()
-        print "block post status: "+str(res.status)+' '+res.reason
-        rdata = res.read()
-        print rdata,
+        try:
+            rdata = json.loads(res.read())
+            logging.info("notify: "+str(res.status)+' '+res.reason+' - '+rdata["subscribers"]+' subscriber(s)')
+        except:
+            logging.warning("notify: "+str(res.status)+' '+res.reason+' - failed to fetch subscribers')
         conn.close()
         #sys.exit(0);
 
@@ -57,10 +60,13 @@ class Peercoin(object):
         data["id"] = block["height"]
         data["hash"] = hash
         data["chain"] = 0
+        data["txcount"] = len(block["tx"])
         if self.pos.match(block["flags"]):
             data["pos"] = True
+            data["txcount"] = data["txcount"] - 2
         else: 
             data["pos"] = False
+            data["txcount"] = data["txcount"] - 1
         data["hashprevblock"] = block["previousblockhash"]
         data["hashmerkleroot"] = block["merkleroot"]
         delta = dateutil.parser.parse(block["time"]).replace(tzinfo=None)-datetime.datetime(1970,1,1)
@@ -70,8 +76,7 @@ class Peercoin(object):
         data["bits"] = block["bits"]
         data["diff"] = block["difficulty"]
         data["nonce"] = block["nonce"]
-        data["txcount"] = len(block["tx"])
-        data["reward"] = int(block["mint"] * Decimal("1e6"))
+        data["reward"] = long(block["mint"] * Decimal("1e6"))
         data["staked"] = 0
         data["sent"] = 0
         data["received"] = 0
@@ -80,9 +85,9 @@ class Peercoin(object):
             txdata = self.conn.gettransaction(tx)
             for txn in txdata.transaction:
                 for out in txn["outpoints"]:
-                    data["received"] += int(out["value"])
+                    data["received"] += long(out["value"])
                 for inp in txn["inpoints"]:
-                    data["sent"] += int(inp["value"])
+                    data["sent"] += long(inp["value"])
             if data["pos"] and count < 2:
                 data["staked"] += data["sent"]
             count += 1
@@ -120,6 +125,8 @@ class Database(object):
           future = self.session.execute_async(self.blockhash_query, dict(id=id))
           rows = future.result()
           #print rows
+          if len(rows) == 0:
+            return None
           return rows[0][0]
     def decrement_counter(self):
           future = self.session.execute_async(self.decrement_query)
@@ -140,51 +147,125 @@ class Database(object):
         #print block
         self.increment_counter();
 
+class Syncer(object):
+    def __init__(self):
+        logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+        self.options = self.parse_args()
+        self.block = None
+        self.verify = None
+        self.loop = None
+        self.id = None
+        if self.options.verbose:
+            logging.getLogger().setLevel(logging.DEBUG)
+        if self.options.id:
+            self.id = self.options.id
+            logging.info("starting peercoin syncer for block height: "+str(self.id))
+        if self.options.block:
+            self.block = self.options.block
+            logging.info("starting peercoin syncer for block: "+self.block)
+        elif self.options.loop:
+            self.loop = self.options.loop
+            logging.info("starting peercoin syncer in polling mode ("+self.loop+" s cycle)")
+        elif self.options.verify:
+            self.verify = True
+            logging.info("verifying db and daemon hash consistency for lastest block in db")
+        else:
+            logging.info("starting peercoin syncing for one sync")  
+        self.db = Database()
+        self.dryrun = self.options.dryrun
+        self.daemon = Peercoin()
+        self.notify = Notify('localhost',8080,'/broadcast')
+    def parse_args(self):
+        version = '0.0.1'
+        self.parser = OptionParser(usage="\nPeercoin Daemon Sync Utility "+version+"\nSync's the lastest blocks into the database by default\n$ %prog [options]", version="%prog "+version)
+        self.parser.add_option("-d","--debug", action="store_true", dest="verbose", help="verbose debug output", default=False)
+        self.parser.add_option("-v","--verify", action="store_true", dest="verify", help="check consistency for latest block between database and daemon", default=False)
+        self.parser.add_option("-n","--dry-run", action="store_true", dest="dryrun", help="no database inserts", default=False)
+        self.parser.add_option("-b","--block", dest="block", metavar='HASH', help="process only the block hash specified")
+        self.parser.add_option("-i","--height", dest="id", metavar='ID', help="process only the block id/height specified")
+        self.parser.add_option("-l","--loop", dest="loop", metavar='CYCLE', help="polling mode with CYCLE seconds sleep")
+        (options, args) = self.parser.parse_args()
+        return options
+    def get_heights(self):
+        self.peercoin_height = self.daemon.block_count()
+        self.db_height = self.db.block_count() - 1
+        logging.debug("ppcoind has "+str(self.peercoin_height)+" blocks") 
+        logging.debug("database has "+str(self.db_height)+" blocks")
+        self.diff = self.peercoin_height - self.db_height;
+    def check_chains(self):
+        self.get_heights()
+        logging.debug("verifying chain")
+        daemon_hash = self.daemon.conn.getblockhash(self.peercoin_height) 
+        db_hash = self.db.getblockhash(self.peercoin_height)
+        if not db_hash:
+            logging.info("lastest block not found in database, please sync first")
+            logging.debug("daemon: "+daemon_hash)
+            sys.exit(1)
+        logging.debug("daemon: "+daemon_hash)
+        logging.debug("db    : "+db_hash)
+        if db_hash == "SEE NEXT BLOCK":
+            logging.warning("database recently restored..waiting for new blocks..")
+        else:
+            if daemon_hash != db_hash:
+                logging.warning("ppc client and database lastest blocks differ!")
+                print >> sys.stderr, "warning ppc client and database lastest blocks differ!"
+                logging.warning("daemon: "+daemon_hash)
+                logging.warning("db    : "+db_hash)
+            else:
+                logging.debug("ppc client and database newest chains in sync")
+    def process_id(self):
+        self.get_heights()
+        hash = self.daemon.conn.getblockhash(int(self.id))
+        self.insert_block(hash)
+    def process_block(self):
+        self.get_heights()
+        self.insert_block(self.block)
+    def insert_block(self,hash):
+        logging.info("processing block hash: "+hash)
+        block = self.daemon.conn.getblock(hash)
+        data = self.daemon.fill_in_data(hash,block)
+        logging.debug(data)
+        if self.dryrun:
+            logging.info("not inserting block: dryrun enabled")
+        else:
+            logging.debug("inserting block: dryrun not enabled")
+            self.db.insert_block(data)
+        self.notify.post(data,block["time"])
+        
+    def insert_recent_blocks(self):
+        for i in reversed(range(self.diff)):
+            id = self.peercoin_height - i;
+            hash = self.daemon.conn.getblockhash(id)
+            logging.info("processing block: "+str(id))
+            self.insert_block(hash)
+            #print "entering sleep..",
+            #sys.exit(1)
+        #print ".",
+    def process_diff(self):
+        self.get_heights() 
+        # check for re-org
+        if self.diff == 0:
+            logging.info('diff 0 - checking chain consistency instead')
+            self.check_chains()
+        else:            
+            logging.debug("syncing "+str(self.diff)+" blocks...")
+            self.insert_recent_blocks()
+
 
 
 if __name__ == "__main__":
-    daemon = Peercoin()
-    db = Database()
-    notify = Notify('localhost',8080,'/broadcast')
-    exit = 0
-    v = False
-    print "starting peercoin syncer.."
-    while not exit:
-        peercoin_height = daemon.block_count()
-        db_height = db.block_count() - 1
-        if v: print "ppcoind has "+str(peercoin_height)+" blocks"
-        if v: print "database has "+str(db_height)+" blocks" 
-        diff = peercoin_height - db_height;
-        if v: print "syncing "+str(diff)+" blocks..."
-        # check for re-org
-        if diff == 0:
-            if v: print "\nverifying chain"
-            daemon_hash = daemon.conn.getblockhash(peercoin_height) 
-            db_hash = db.getblockhash(peercoin_height)
-            if v: print "daemon: "+daemon_hash
-            if v: print "db    : "+db_hash
-            if db_hash == "SEE NEXT BLOCK":
-                print "warning database recently restored..waiting for new blocks.."
-            else:
-                if daemon_hash != db_hash:
-                    print "warning ppc client and database lastest blocks differ!"
-                    print >> sys.stderr, "warning ppc client and database lastest blocks differ!"
-                    print "daemon: "+daemon_hash
-                    print "db    : "+db_hash
-                else:
-                    if v: print "ppc client and database newest chains in sync"
-        # insert recently found blocks
-        for i in reversed(range(diff)):
-            id = peercoin_height - i;
-            hash = daemon.conn.getblockhash(id)
-            print "\nprocessing block: "+str(id)+" ("+hash+")"
-            block = daemon.conn.getblock(hash)
-            data = daemon.fill_in_data(hash,block)
-            db.insert_block(data)
-            notify.post(data,block["time"])
-            print "entering sleep..",
-            #sys.exit(1)
-        print ".",
-        sys.stdout.flush()
-        time.sleep(30);
+    sync = Syncer()
+    if sync.id:
+        sync.process_id()
+    elif sync.block:
+        sync.process_block()
+    elif sync.loop:
+        while True:
+            sync.process_diff()
+            sys.stdout.flush()
+            time.sleep(float(sync.loop));
+    elif sync.verify:
+        sync.check_chains()
+    else:
+        sync.process_diff()
 

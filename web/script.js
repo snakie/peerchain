@@ -2,13 +2,13 @@ function block_to_row(block) {
        var cells = [];
        cells.push("<tr>");
        cells.push("<td>"+block.id+"</td>");
-       cells.push("<td>"+(block.pos == true ? "POS" : "POW")+"</td>");
        cells.push("<td><abbr class=\"timeago\" title=\""+block.time+"\">"+block.time+"</abbr></td>");
-       cells.push("<td>"+parseFloat(block.diff).toPrecision(10)+"</td>");
-       cells.push("<td>"+block.reward+"</td>");
+       cells.push("<td>"+(block.pos == true ? "POS" : "POW")+"</td>");
+       cells.push("<td>"+(block.pos == true ? parseFloat(block.diff).toFixed(2) : (parseFloat(block.diff) / 1e6).toFixed(2) + 'M')+"</td>");
+       cells.push("<td>"+parseFloat(block.reward).toFixed(2)+"</td>");
        cells.push("<td>"+block.txcount+"</td>");
-       cells.push("<td>"+block.received+"</td>");
-       cells.push("<td>"+block.destroyed+"</td>");
+       cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
+       cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
        cells.push("</tr>");
        return cells;
 }
