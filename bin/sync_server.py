@@ -5,6 +5,9 @@ from decimal import Decimal
 from optparse import OptionParser
 from cassandra.cluster import Cluster
 from cassandra.query import SimpleStatement
+sys.path.append("/app/lib/bitcointools")
+from deserialize import *
+from BCDataStream import *
 
 
 class Notify(object):
@@ -21,9 +24,9 @@ class Notify(object):
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
         block["time"] = time
         return block
-    def post(self,data,time):
+    def post(self,data):
         conn = httplib.HTTPConnection(self.host,self.port)
-        conn.request("POST", self.uri, json.dumps(self.block_to_json(data,time)))
+        conn.request("POST", self.uri, json.dumps(data))
         res = conn.getresponse()
         try:
             rdata = json.loads(res.read())
@@ -31,6 +34,12 @@ class Notify(object):
         except:
             logging.warning("notify: "+str(res.status)+' '+res.reason+' - failed to fetch subscribers')
         conn.close()
+    def post_tx(self,data):
+        data = data.transaction[0]
+        self.post(data)
+    def post_block(self,data,time):
+        jsondata = self.block_to_json(data,time)
+        self.post(jsondata)
         #sys.exit(0);
 
 class Peercoin(object):
@@ -66,6 +75,7 @@ class Peercoin(object):
             data["txcount"] = data["txcount"] - 2
         else: 
             data["pos"] = False
+            data["coindays"] = -1
             data["txcount"] = data["txcount"] - 1
         data["hashprevblock"] = block["previousblockhash"]
         data["hashmerkleroot"] = block["merkleroot"]
@@ -89,6 +99,8 @@ class Peercoin(object):
                     data["received"] += long(out["value"])
                 for inp in txn["inpoints"]:
                     data["sent"] += long(inp["value"])
+                if data["pos"] and count == 1:
+                    data["coindays"] = txn["coindays"]
             if data["pos"] and count < 2:
                 data["staked"] += data["sent"]
             count += 1
@@ -98,6 +110,7 @@ class Peercoin(object):
         else:
             data["received"] = data["received"] - data["reward"]
         data["destroyed"] = data["sent"] - data["received"]
+        #print data
     
         return data    
         
@@ -110,7 +123,7 @@ class Database(object):
         self.blockhash_query = SimpleStatement("SELECT hash from blocks where id=%(id)s")
         self.increment_query = SimpleStatement("UPDATE counters SET value = value+1 where name = 'blocks'")
         self.decrement_query = SimpleStatement("UPDATE counters SET value = value-1 where name = 'blocks'")
-        self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
+        self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,coindays,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(coindays)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
     def block_count(self):
           future = self.session.execute_async(self.last_query)
           try:
@@ -155,14 +168,18 @@ class Syncer(object):
         self.verify = None
         self.loop = None
         self.id = None
+        self.tx = None
         if self.options.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
         if self.options.id:
             self.id = self.options.id
             logging.info("starting peercoin syncer for block height: "+str(self.id))
-        if self.options.block:
+        elif self.options.block:
             self.block = self.options.block
             logging.info("starting peercoin syncer for block: "+self.block)
+        elif self.options.tx:
+            self.tx = self.options.tx
+            logging.info("starting peercoin syncer for tx: "+self.tx)
         elif self.options.loop:
             self.loop = self.options.loop
             logging.info("starting peercoin syncer in polling mode ("+self.loop+" s cycle)")
@@ -175,6 +192,7 @@ class Syncer(object):
         self.dryrun = self.options.dryrun
         self.daemon = Peercoin()
         self.notify = Notify('localhost',8080,'/broadcast/block')
+        self.txnotify = Notify('localhost',8080,'/broadcast/tx')
     def parse_args(self):
         version = '0.0.1'
         self.parser = OptionParser(usage="\nPeercoin Daemon Sync Utility "+version+"\nSync's the lastest blocks into the database by default\n$ %prog [options]", version="%prog "+version)
@@ -182,6 +200,7 @@ class Syncer(object):
         self.parser.add_option("-v","--verify", action="store_true", dest="verify", help="check consistency for latest block between database and daemon", default=False)
         self.parser.add_option("-n","--dry-run", action="store_true", dest="dryrun", help="no database inserts", default=False)
         self.parser.add_option("-b","--block", dest="block", metavar='HASH', help="process only the block hash specified")
+        self.parser.add_option("-t","--tx", dest="tx", metavar='TXHASH', help="send a transaction notify out")
         self.parser.add_option("-i","--height", dest="id", metavar='ID', help="process only the block id/height specified")
         self.parser.add_option("-l","--loop", dest="loop", metavar='CYCLE', help="polling mode with CYCLE seconds sleep")
         (options, args) = self.parser.parse_args()
@@ -220,6 +239,37 @@ class Syncer(object):
     def process_block(self):
         self.get_heights()
         self.insert_block(self.block)
+    def process_tx(self):
+        hash = self.tx
+        tx_broadcast = dict(hash=hash, value=0);
+        logging.info("processing tx hash: "+hash)
+        try:
+            tx = self.daemon.conn.gettransaction(hash)
+            tx = tx.transaction[0]
+            logging.debug(tx)
+            for out in tx["outpoints"]:
+                tx_broadcast["value"] += long(out["value"])
+        except bitcoinrpc.exceptions.InvalidAddressOrKey:
+            logging.info("tx not found in blockchain")
+            template = self.daemon.conn.proxy.getblocktemplate()
+            txns = template["transactions"];
+            txdata = None
+            for tx in txns:
+                if tx["hash"] == hash:
+                    logging.info("tx found in mempool")
+                    txdata = tx["data"]
+                    break
+            if not txdata:
+                logging.info("unable to find tx in mempool")
+                sys.exit(1);
+            raw = BCDataStream()
+            raw.write(txdata.decode('hex_codec'))
+            tx = parse_Transaction(raw)
+            for out in tx["txOut"]:
+                tx_broadcast["value"] += out["value"] 
+        tx_broadcast["time"] = datetime.datetime.fromtimestamp(tx["time"]).strftime('%Y-%m-%d %H:%M:%S+0000')
+        tx_broadcast["value"] = format(tx_broadcast["value"] / 1e6,'.6f')
+        self.txnotify.post(tx_broadcast)
     def insert_block(self,hash):
         logging.info("processing block hash: "+hash)
         block = self.daemon.conn.getblock(hash)
@@ -230,7 +280,7 @@ class Syncer(object):
         else:
             logging.debug("inserting block: dryrun not enabled")
             self.db.insert_block(data)
-        self.notify.post(data,block["time"])
+        self.notify.post_block(data,block["time"])
         
     def insert_recent_blocks(self):
         for i in reversed(range(self.diff)):
@@ -255,7 +305,9 @@ class Syncer(object):
 
 if __name__ == "__main__":
     sync = Syncer()
-    if sync.id:
+    if sync.tx:
+        sync.process_tx()
+    elif sync.id:
         sync.process_id()
     elif sync.block:
         sync.process_block()

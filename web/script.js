@@ -11,15 +11,31 @@ function block_to_row(block) {
        cells.push("<td>"+block.txcount+"</td>");
        cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
+       cells.push("<td>"+(block.coindays < 0 ? '-' : block.coindays)+"</td>");
        cells.push("</tr>");
        return cells;
+}
+function txn_to_row(tx) {
+    var cells = []
+    cells.push("<tr>");
+    cells.push("<td>"+tx.hash+"</td>");
+    cells.push("<td><abbr class=\"timeago\" title=\""+tx.time+"\">"+tx.time+"</abbr></td>");
+    cells.push("<td>"+parseFloat(tx.value).toFixed(2)+"</td>");
+    cells.push("</tr>");
+    return cells;
 }
 function add_block(block) {
     block.time = block.time.replace(' UTC','+0000')
     update_last_block(block);
     var cells = block_to_row(block);
     $("#table_header").after(cells.join(""));
-    $("abbr.timeago").timeago()
+    $("#blocks tr:last").remove();
+    $("abbr.timeago").timeago();
+}
+function add_tx(tx) {
+    var cells = txn_to_row(tx)
+    $("#txn_header").after(cells.join(""));
+    $("abbr.timeago").timeago();
 
 }
 function message_received(text, id, channel) {
@@ -31,6 +47,8 @@ function message_received(text, id, channel) {
         } else {
             console.log("block too old")
         }
+    } else if(channel == 'tx') {
+        add_tx(text);
     }
 }
 function update_last_block(block) {
@@ -51,6 +69,7 @@ var pushstream = new PushStream({
 });
 pushstream.onmessage = message_received;
 pushstream.addChannel('block');
+pushstream.addChannel('tx');
 $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
     var blocks = json.blocks;
     $.each( blocks, function( index, block ) {
