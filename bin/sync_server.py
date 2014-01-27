@@ -122,9 +122,12 @@ class Database(object):
         self.session.set_keyspace(keyspace)
         self.last_query = SimpleStatement("SELECT value from counters where name='blocks'")
         self.blockhash_query = SimpleStatement("SELECT hash from blocks where id=%(id)s")
+        self.last_stats_query = SimpleStatement("SELECT * from stats where last_block=%(id)s")
         self.increment_query = SimpleStatement("UPDATE counters SET value = value+1 where name = 'blocks'")
         self.decrement_query = SimpleStatement("UPDATE counters SET value = value-1 where name = 'blocks'")
         self.delete_query = SimpleStatement("delete from blocks where id=%(id)s")
+        self.delete_stats_query = SimpleStatement("delete from stats where last_block=%(id)s")
+        self.stats_query = SimpleStatement("INSERT INTO stats (last_block,destroyed_fees,mined_coins,minted_coins,money_supply,pos_blocks,pow_blocks,time,transactions) VALUES (%(last_block)s,%(destroyed_fees)s,%(mined_coins)s,%(minted_coins)s,%(money_supply)s,%(pos_blocks)s,%(pow_blocks)s,%(time)s,%(transactions)s)")
         self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,coindays,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(coindays)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
     def block_count(self):
           future = self.session.execute_async(self.last_query)
@@ -135,7 +138,7 @@ class Database(object):
           if len(rows) == 0:
               return "failed to fetch last block count"
           value = rows[0][0]
-          return value
+          return int(value)
     def getblockhash(self,id):
           future = self.session.execute_async(self.blockhash_query, dict(id=id))
           rows = future.result()
@@ -143,11 +146,19 @@ class Database(object):
           if len(rows) == 0:
             return None
           return rows[0][0]
+    def get_stats(self,id):
+          future = self.session.execute_async(self.last_stats_query,dict(id=id))
+          rows = future.result()
+          if rows:
+            return rows[0]._asdict()
+          return None
     def decrement_counter(self):
           future = self.session.execute_async(self.decrement_query)
           rows = future.result()
     def delete_block(self,id):
           future = self.session.execute_async(self.delete_query,dict(id=id))
+          rows = future.result()
+          future = self.session.execute_async(self.delete_stats_query,dict(id=id))
           rows = future.result()
           self.decrement_counter();
     def increment_counter(self):
@@ -156,10 +167,12 @@ class Database(object):
           rows = future.result()
           #except Exception as e:
           #    return str(e)
-    def insert_block(self,block):
+    def insert_block(self,block,stats):
         #print block
         future = self.session.execute_async(self.block_query,block)
         #try:
+        rows = future.result()
+        future = self.session.execute_async(self.stats_query,stats)
         rows = future.result()
         #except Exception as e:
         #    return str(e)
@@ -287,16 +300,37 @@ class Syncer(object):
         tx_broadcast["time"] = date.strftime('%Y-%m-%d %H:%M:%S%z')
         tx_broadcast["value"] = format(tx_broadcast["value"] / 1e6,'.6f')
         self.txnotify.post(tx_broadcast)
+    def update_stats(self,stats,data):
+        if data["pos"]:
+            stats["pos_blocks"] += 1
+            stats["minted_coins"] += data["reward"]
+        else:
+            stats["pow_blocks"] += 1
+            stats["mined_coins"] += data["reward"]
+        stats["money_supply"] += data["reward"]
+        stats["money_supply"] -= data["destroyed"]
+        stats["destroyed_fees"] -= data["destroyed"]
+        stats["last_block"] += 1
+        stats["transactions"] += data["txcount"]
+        delta = datetime.datetime.utcnow()-datetime.datetime(1970,1,1)
+        stats["time"] = (delta.days * 86400 + delta.seconds) * 1000
+
+        return stats 
     def insert_block(self,hash):
         logging.info("processing block hash: "+hash)
         block = self.daemon.conn.getblock(hash)
         data = self.daemon.fill_in_data(hash,block)
+        stats = self.db.get_stats(data["id"] - 1)
+        #print data
+        #print stats
+        stats = self.update_stats(stats,data)
         logging.debug(data)
+        #print stats
         if self.dryrun:
             logging.info("not inserting block: dryrun enabled")
         else:
             logging.debug("inserting block: dryrun not enabled")
-            self.db.insert_block(data)
+            self.db.insert_block(data,stats)
         self.notify.post_block(data,block["time"])
         
     def insert_recent_blocks(self):
