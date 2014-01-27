@@ -124,6 +124,7 @@ class Database(object):
         self.blockhash_query = SimpleStatement("SELECT hash from blocks where id=%(id)s")
         self.increment_query = SimpleStatement("UPDATE counters SET value = value+1 where name = 'blocks'")
         self.decrement_query = SimpleStatement("UPDATE counters SET value = value-1 where name = 'blocks'")
+        self.delete_query = SimpleStatement("delete from blocks where id=%(id)s")
         self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,coindays,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(coindays)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
     def block_count(self):
           future = self.session.execute_async(self.last_query)
@@ -145,6 +146,10 @@ class Database(object):
     def decrement_counter(self):
           future = self.session.execute_async(self.decrement_query)
           rows = future.result()
+    def delete_block(self,id):
+          future = self.session.execute_async(self.delete_query,dict(id=id))
+          rows = future.result()
+          self.decrement_counter();
     def increment_counter(self):
           future = self.session.execute_async(self.increment_query)
           #try:
@@ -170,11 +175,15 @@ class Syncer(object):
         self.loop = None
         self.id = None
         self.tx = None
+        self.update = None
         if self.options.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
         if self.options.id:
             self.id = self.options.id
             logging.info("starting peercoin syncer for block height: "+str(self.id))
+        elif self.options.update:
+            self.update = self.options.update
+            logging.info("starting peercoin syncer for block update: "+self.update)
         elif self.options.block:
             self.block = self.options.block
             logging.info("starting peercoin syncer for block: "+self.block)
@@ -203,6 +212,7 @@ class Syncer(object):
         self.parser.add_option("-b","--block", dest="block", metavar='HASH', help="process only the block hash specified")
         self.parser.add_option("-t","--tx", dest="tx", metavar='TXHASH', help="send a transaction notify out")
         self.parser.add_option("-i","--height", dest="id", metavar='ID', help="process only the block id/height specified")
+        self.parser.add_option("-u","--update", dest="update", metavar='ID', help="update block in db")
         self.parser.add_option("-l","--loop", dest="loop", metavar='CYCLE', help="polling mode with CYCLE seconds sleep")
         (options, args) = self.parser.parse_args()
         return options
@@ -236,6 +246,10 @@ class Syncer(object):
     def process_id(self):
         self.get_heights()
         hash = self.daemon.conn.getblockhash(int(self.id))
+        self.insert_block(hash)
+    def process_update(self):
+        hash = self.daemon.conn.getblockhash(int(self.update))
+        self.db.delete_block(int(self.update)) 
         self.insert_block(hash)
     def process_block(self):
         self.get_heights()
@@ -310,6 +324,8 @@ if __name__ == "__main__":
     sync = Syncer()
     if sync.tx:
         sync.process_tx()
+    elif sync.update:
+        sync.process_update()
     elif sync.id:
         sync.process_id()
     elif sync.block:
