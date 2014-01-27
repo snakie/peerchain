@@ -64,7 +64,7 @@ var pushstream = new PushStream({
     host: window.location.hostname,
     port: window.location.port,
     modes: "websocket",
-    messagesPublishedAfter: 1800,
+    messagesPublishedAfter: 7200,
     messagesControlByArgument: true
 });
 pushstream.onmessage = message_received;
