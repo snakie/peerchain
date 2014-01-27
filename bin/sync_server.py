@@ -1,6 +1,7 @@
 #!/usr/local/bin/python
 
-import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json, logging
+import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json, logging, pytz 
+from dateutil.tz import tzlocal
 from decimal import Decimal
 from optparse import OptionParser
 from cassandra.cluster import Cluster
@@ -243,31 +244,33 @@ class Syncer(object):
         hash = self.tx
         tx_broadcast = dict(hash=hash, value=0);
         logging.info("processing tx hash: "+hash)
-        try:
-            tx = self.daemon.conn.gettransaction(hash)
-            tx = tx.transaction[0]
-            logging.debug(tx)
-            for out in tx["outpoints"]:
-                tx_broadcast["value"] += long(out["value"])
-        except bitcoinrpc.exceptions.InvalidAddressOrKey:
-            logging.info("tx not found in blockchain")
-            template = self.daemon.conn.proxy.getblocktemplate()
-            txns = template["transactions"];
-            txdata = None
-            for tx in txns:
-                if tx["hash"] == hash:
-                    logging.info("tx found in mempool")
-                    txdata = tx["data"]
-                    break
-            if not txdata:
-                logging.info("unable to find tx in mempool")
-                sys.exit(1);
+        template = self.daemon.conn.proxy.getblocktemplate()
+        txns = template["transactions"];
+        txdata = None
+        for tx in txns:
+            if tx["hash"] == hash:
+                logging.info("tx found in mempool")
+                txdata = tx["data"]
+                break
+        if txdata:
             raw = BCDataStream()
             raw.write(txdata.decode('hex_codec'))
             tx = parse_Transaction(raw)
             for out in tx["txOut"]:
                 tx_broadcast["value"] += out["value"] 
-        tx_broadcast["time"] = datetime.datetime.fromtimestamp(tx["time"]).strftime('%Y-%m-%d %H:%M:%S+0000')
+        else:
+            logging.info("unable to find tx in mempool")
+            try:
+                tx = self.daemon.conn.gettransaction(hash)
+                tx = tx.transaction[0]
+                logging.debug(tx)
+                for out in tx["outpoints"]:
+                    tx_broadcast["value"] += long(out["value"])
+            except bitcoinrpc.exceptions.InvalidAddressOrKey:
+                logging.info("tx not found in blockchain")
+                sys.exit(1)
+        date = datetime.datetime.fromtimestamp(tx["time"]).replace(tzinfo=tzlocal())
+        tx_broadcast["time"] = date.strftime('%Y-%m-%d %H:%M:%S%z')
         tx_broadcast["value"] = format(tx_broadcast["value"] / 1e6,'.6f')
         self.txnotify.post(tx_broadcast)
     def insert_block(self,hash):
