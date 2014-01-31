@@ -39,7 +39,7 @@ function add_block(block) {
 function add_tx(tx) {
     var cells = txn_to_row(tx)
     $("#txn_header").after(cells.join(""));
-    console.log("txn length: "+$("#txns.row div").size());
+    console.log("txn length: "+$("#txns div.row").size());
     if($("#txns div.row").size() > 11) {
         $("#txns div.row:last").remove();
     }
@@ -48,7 +48,7 @@ function add_tx(tx) {
 }
 function message_received(text, id, channel) {
     console.log('web socket message on channel: "'+channel+'" id: "'+id+'"')
-    console.log(text);
+    //console.log(text);
     if (channel == 'block') {
         if(text.id > last_block) {
             add_block(text);
