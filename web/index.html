@@ -1,20 +1,47 @@
-<html>
-<head>
-<title>Peerchain - Peercoin Network Inspector</title>
-<script type="text/javascript" src="/jquery-1.10.2.js"></script>
-<script type="text/javascript" src="/jquery.timeago.js"></script>
-<script type="text/javascript" src="/script.js"></script>
-<script type="text/javascript" src="/pushstream.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>peerchain.net - The Peercoin Blockchain</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/grid.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+    <div class="page-header">
+        <h1>peerchain.net</h1>
+        <p class="lead">The Peercoin Blockchain</p>
+    </div>
+    <h3>Recent Blocks</h3>
+    <div id="blocks">
+    <div class="row" id="table_header">
+        <div class="col-md-1">Height</div>
+        <div class="col-md-2">Age</div>
+        <div class="col-md-1">Type</div>
+        <div class="col-md-1">Difficulty</div>
+        <div class="col-md-1">Reward</div>
+        <div class="col-md-1">Tx Count</div>
+        <div class="col-md-1">Tx PPC</div>
+        <div class="col-md-1">Destroyed</div>
+        <div class="col-md-1">Amount Staked</div>
+        <div class="col-md-1">Stake Age (Coindays)</div>
+    </div>
+    </div>
+    <h3>Latest Transactions</h3>
+    <div id="txns">
+    <div class="row" id="txn_header">
+        <div class="col-md-6">Hash</div>
+        <div class="col-md-2">Age</div>
+        <div class="col-md-1">PPC Out</div>
+    </div>
+    </div>
+    <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
+    <script type="text/javascript" src="js/jquery.timeago.js"></script>
+    <script type="text/javascript" src="js/incoming.js"></script>
+    <script type="text/javascript" src="js/pushstream.js"></script>
+    <script type="text/javascript" src="js/bootstrap.js"></script>
 
-</head>
-<body>
-Peerchain<br><br>
-Lastest Blocks:
-<table id="blocks">
-<tr id='table_header'><td>Height</td><td>Age</td><td>Type</td><td>Difficulty</td><td>Reward</td><td>Tx Count</td><td>Tx PPC Out</td><td>Destroyed</td><td>Amount Staked</td><td>Stake Age (Coindays)</td></tr>
-</table>
-Latest Transactions:
-<table id="txns">
-<tr id='txn_header'><td>Hash</td><td>Age</td><td>PPC Out</td></tr>
-</table>
-</body>
+  </body>
+</html>
