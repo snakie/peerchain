@@ -30,8 +30,8 @@ function add_block(block) {
     update_last_block(block);
     var cells = block_to_row(block);
     $("#table_header").after(cells.join(""));
-    if($("#blocks tr td").length > 110) {
-        console.log("block length: "+$("#blocks tr td").length);
+    console.log("block length: "+$("#blocks tr").size());
+    if($("#blocks tr ").size() > 11) {
         $("#blocks tr:last").remove();
     }
     $("abbr.timeago").timeago();
@@ -39,8 +39,8 @@ function add_block(block) {
 function add_tx(tx) {
     var cells = txn_to_row(tx)
     $("#txn_header").after(cells.join(""));
-    if($("#txns tr td").length > 110) {
-        console.log("txn length: "+$("#txns tr td").length);
+    console.log("txn length: "+$("#txns tr").size());
+    if($("#txns tr ").size() > 11) {
         $("#txns tr:last").remove();
     }
     $("abbr.timeago").timeago();
