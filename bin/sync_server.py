@@ -38,6 +38,8 @@ class Notify(object):
     def post_tx(self,data):
         data = data.transaction[0]
         self.post(data)
+    def post_stats(self,data):
+        self.post(data)
     def post_block(self,data,time):
         jsondata = self.block_to_json(data,time)
         self.post(jsondata)
@@ -219,6 +221,7 @@ class Syncer(object):
         self.daemon = Peercoin()
         self.notify = Notify('127.0.0.1',80,'/broadcast/block')
         self.txnotify = Notify('127.0.0.1',80,'/broadcast/tx')
+        self.networknotify = Notify('127.0.0.1',80,'/broadcast/network')
     def parse_args(self):
         version = '0.0.1'
         self.parser = OptionParser(usage="\nPeercoin Daemon Sync Utility "+version+"\nSync's the lastest blocks into the database by default\n$ %prog [options]", version="%prog "+version)
@@ -337,6 +340,7 @@ class Syncer(object):
             logging.debug("inserting block: dryrun not enabled")
             self.db.insert_block(data,stats)
         self.notify.post_block(data,block["time"])
+        self.networknotify.post_stats(stats)
         
     def insert_recent_blocks(self):
         for i in reversed(range(self.diff)):
