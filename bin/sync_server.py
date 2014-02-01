@@ -380,5 +380,6 @@ if __name__ == "__main__":
         sync.check_chains()
     else:
         sync.process_diff()
+        sync.check_chains()
     sync.shutdown()
 
