@@ -24,8 +24,8 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li class="active"><a href="/">Home</a></li>
-            <li><a href="blocks.html">Blocks</a></li>
+            <li><a href="/">Home</a></li>
+            <li class="active"><a href="blocks.html">Blocks</a></li>
             <li><a href="tx.html">Transactions</a></li>
           </ul>
         </div><!--/.nav-collapse -->
@@ -42,30 +42,24 @@
         <td>Stake Age (Coindays)</td>
     </tr>
     </table>
-    <hr>
-    <h3>Latest Transactions</h3>
-    <table id="txns" class="table">
-        <tr id='txn_header'><td>Hash</td><td>Age</td><td>PPC Out</td></tr>
-    </table>
     </div>
     <div id="push"></div>
     </div>
     <div id="footer">
-        <div class="container">
-                <div class="text-center">peerchain by snakie (snakie at yahoo.com) - <a href="api">api</a></div>
-                <div class="text-center">donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj</div>
-        </div>
+    <div class="container">
+    <div class="text-center">peerchain by snakie (snakie at yahoo.com) - <a href="api">api</a></div>
+    <div class="text-center">donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj</div>
     </div>
-    <script>
-    var block_count = 6;
-    var tx_count = 6;
-    var channels = ["block","tx"];
-    </script>
+    </div>
     <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
     <script type="text/javascript" src="js/jquery.timeago.js"></script>
     <script type="text/javascript" src="js/incoming.js"></script>
     <script type="text/javascript" src="js/pushstream.js"></script>
     <script type="text/javascript" src="js/bootstrap.js"></script>
+    <script>
+    var block_count = 10;
+    var channels = ["block"]
+    </script>
 
   </body>
 </html>

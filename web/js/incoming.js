@@ -2,27 +2,27 @@ var last_block = 0;
 
 function block_to_row(block) {
        var cells = [];
-       cells.push("<div class=\"row\">");
-       cells.push("<div class=\"col-md-1\"><a href=\"/api/blocks/"+block.id+"\">"+block.id+"</a></div>");
-       cells.push("<div class=\"col-md-2\"><abbr class=\"timeago\" title=\""+block.time+"\">"+block.time+"</abbr></div>");
-       cells.push("<div class=\"col-md-1\">"+(block.pos == true ? "POS" : "POW")+"</div>");
-       cells.push("<div class=\"col-md-1\">"+(block.pos == true ? parseFloat(block.diff).toFixed(2) : (parseFloat(block.diff) / 1e6).toFixed(2) + 'M')+"</div>");
-       cells.push("<div class=\"col-md-1\">"+parseFloat(block.reward).toFixed(2)+"</div>");
-       cells.push("<div class=\"col-md-1\">"+block.txcount+"</div>");
-       cells.push("<div class=\"col-md-1\">"+parseFloat(block.received).toFixed(2)+"</div>");
-       cells.push("<div class=\"col-md-1\">"+parseFloat(block.destroyed).toFixed(2)+"</div>");
-       cells.push("<div class=\"col-md-1\">"+(block.pos == true ? parseFloat(block.staked) : '-')+"</div>");
-       cells.push("<div class=\"col-md-1\">"+(block.pos == true ? block.coindays : '-')+"</div>");
-       cells.push("</div>");
+       cells.push("<tr>");
+       cells.push("<td><a href=\"/api/blocks/"+block.id+"\">"+block.id+"</td>");
+       cells.push("<td><abbr class=\"timeago\" title=\""+block.time+"\">"+block.time+"</abbr></td>");
+       cells.push("<td>"+(block.pos == true ? "POS" : "POW")+"</td>");
+       cells.push("<td>"+(block.pos == true ? parseFloat(block.diff).toFixed(2) : (parseFloat(block.diff) / 1e6).toFixed(2) + 'M')+"</td>");
+       cells.push("<td>"+parseFloat(block.reward).toFixed(2)+"</td>");
+       cells.push("<td>"+block.txcount+"</td>");
+       cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
+       cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
+       cells.push("<td>"+(block.pos == true ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
+       cells.push("<td>"+(block.pos == true ? block.coindays : '-')+"</td>");
+       cells.push("</tr>");
        return cells;
 }
 function txn_to_row(tx) {
     var cells = []
-    cells.push("<div class=\"row\">");
-    cells.push("<div class=\"col-md-6\">"+tx.hash+"</div>");
-    cells.push("<div class=\"col-md-2\"><abbr class=\"timeago\" title=\""+tx.time+"\">"+tx.time+"</abbr></div>");
-    cells.push("<div class=\"col-md-1\">"+parseFloat(tx.value).toFixed(2)+"</div>");
-    cells.push("</div>");
+    cells.push("<tr>");
+    cells.push("<td>"+tx.hash+"</td>");
+    cells.push("<td><abbr class=\"timeago\" title=\""+tx.time+"\">"+tx.time+"</abbr></td>");
+    cells.push("<td>"+parseFloat(tx.value).toFixed(2)+"</td>");
+    cells.push("</tr>");
     return cells;
 }
 function add_block(block) {
@@ -31,8 +31,8 @@ function add_block(block) {
     var cells = block_to_row(block);
     $("#table_header").after(cells.join(""));
     console.log("block length: "+$("#blocks div.row").size());
-    if($("#blocks div.row").size() > 11) {
-        $("#blocks div.row:last").remove();
+    if($("#blocks tr").size() > block_count+1) {
+        $("#blocks tr:last").remove();
     }
     $("abbr.timeago").timeago();
 }
@@ -40,8 +40,8 @@ function add_tx(tx) {
     var cells = txn_to_row(tx)
     $("#txn_header").after(cells.join(""));
     console.log("txn length: "+$("#txns div.row").size());
-    if($("#txns div.row").size() > 11) {
-        $("#txns div.row:last").remove();
+    if($("#txns tr").size() > tx_count+1) {
+        $("#txns tr:last").remove();
     }
     $("abbr.timeago").timeago();
 
@@ -84,17 +84,19 @@ $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
 
 var connected = false;
 
+
 jQuery(document).ready(function() {
 var pushstream = new PushStream({
     host: window.location.hostname,
     port: window.location.port,
     modes: "websocket",
-    messagesPublishedAfter: 7200,
+    messagesPublishedAfter: 43200,
     messagesControlByArgument: true
 });
 pushstream.onmessage = message_received;
-pushstream.addChannel('block');
-pushstream.addChannel('tx');
+for(i=0;i<channels.length;i++) {
+    pushstream.addChannel(channels[i])
+}
 pushstream.connect();
 });
 

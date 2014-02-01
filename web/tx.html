@@ -24,25 +24,14 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-            <li class="active"><a href="/">Home</a></li>
+            <li><a href="/">Home</a></li>
             <li><a href="blocks.html">Blocks</a></li>
-            <li><a href="tx.html">Transactions</a></li>
+            <li class="active"><a href="tx.html">Transactions</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
     </div>
     <div class="container">
-    <h3>Latest Blocks</h3>
-    <table id="blocks" class="table">
-    <tr id='table_header'>
-        <td>Height</td><td>Age</td><td>Type</td>
-        <td>Difficulty</td><td>Reward</td>
-        <td>Tx Count</td><td>Tx PPC Out</td>
-        <td>Destroyed</td><td>Amount Staked</td>
-        <td>Stake Age (Coindays)</td>
-    </tr>
-    </table>
-    <hr>
     <h3>Latest Transactions</h3>
     <table id="txns" class="table">
         <tr id='txn_header'><td>Hash</td><td>Age</td><td>PPC Out</td></tr>
@@ -57,9 +46,8 @@
         </div>
     </div>
     <script>
-    var block_count = 6;
-    var tx_count = 6;
-    var channels = ["block","tx"];
+    var tx_count = 10;
+    var channels = ["tx"];
     </script>
     <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
     <script type="text/javascript" src="js/jquery.timeago.js"></script>

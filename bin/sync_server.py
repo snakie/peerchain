@@ -174,8 +174,9 @@ class Database(object):
         future = self.session.execute_async(self.block_query,block)
         #try:
         rows = future.result()
-        future = self.session.execute_async(self.stats_query,stats)
-        rows = future.result()
+        if stats:
+            future = self.session.execute_async(self.stats_query,stats)
+            rows = future.result()
         #except Exception as e:
         #    return str(e)
         #print block
@@ -324,9 +325,11 @@ class Syncer(object):
         data = self.daemon.fill_in_data(hash,block)
         stats = self.db.get_stats(data["id"] - 1)
         #print data
-        #print stats
-        stats = self.update_stats(stats,data)
-        logging.debug(data)
+        if stats:
+            stats = self.update_stats(stats,data)
+            logging.debug(data)
+        else:
+            logging.warning("failed to find previous stats")
         #print stats
         if self.dryrun:
             logging.info("not inserting block: dryrun enabled")

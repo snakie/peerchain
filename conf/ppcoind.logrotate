@@ -1,0 +1,11 @@
+/home/***REMOVED***/.ppcoin/debug.log {
+    missingok
+    notifempty
+    weekly
+    compress
+    delaycompress
+    copytruncate
+    size 20M
+    rotate 12
+    create 600 ***REMOVED*** ***REMOVED***
+}

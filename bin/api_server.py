@@ -48,10 +48,10 @@ class Blockchain(object):
         except Exception as e:
             return str(e)
         if len(rows) == 0:
-            return "stats for network at block "+str(id)+" not found"
+            return "stats not found"
         stats = rows[0]
-        return self.stats_to_json(stats)
-    def get_block(self,block_id):
+        return json.dumps(self.stats_to_json(stats))
+    def get_block(self,block_id,tojson=True):
         try:
             id = int(block_id)
         except ValueError:
@@ -62,9 +62,12 @@ class Blockchain(object):
         except Exception as e:
             return str(e)
         if len(rows) == 0:
-            return "block "+str(id)+" not found"
+            return "block not found"
         block = rows[0]
+        if tojson:
+            return json.dumps(self.block_to_json(block))
         return self.block_to_json(block)
+            
     def get_block_count(self):
         future = self.session.execute_async(self.last_query)
         try:
@@ -89,7 +92,9 @@ class Blocks(object):
             id = int(id)
         except ValueError:
             return "block id must be a number"
-        return json.dumps(self.blockchain.get_block(id))
+        if id < 10000000:
+            return self.blockchain.get_block(id)
+        return "block id too large"
 
 class LastBlock(object):
     exposed = True
@@ -99,17 +104,19 @@ class LastBlock(object):
         if count == None:
             count = 1
             last_id = self.blockchain.get_block_count() - 1
-            return json.dumps(self.blockchain.get_block(last_id))
+            return self.blockchain.get_block(last_id)
         try:
             count = int(count)
         except ValueError:
             return "count must be a number"
+        if count > 10:
+            return "count cannot be greater then 10"
         last_id = self.blockchain.get_block_count() - 1
         data = { 'last' : last_id }
         blocks = []
         for c in range(count):
             curr = last_id-c
-            blocks.append(self.blockchain.get_block(curr))
+            blocks.append(self.blockchain.get_block(curr,False))
         data['blocks'] = blocks;
         return json.dumps(data)
 
@@ -119,12 +126,14 @@ class Stats(object):
         self.blockchain = blockchain
     def GET (self, id=None):
         if id == None:
-            return "Add a block number to the url: stats/86754"
+            return "Add a block number to the url: network/86754"
         try:
             id = int(id)
         except ValueError:
-            return "block id must be a number"
-        return json.dumps(self.blockchain.get_stats(id))
+            return "block height must be a number"
+        if id < 10000000:
+            return self.blockchain.get_stats(id)
+        return "block height too large"
 
 class LastStats(object):
     exposed = True
@@ -132,7 +141,7 @@ class LastStats(object):
         self.blockchain = blockchain
     def GET (self):
         id = self.blockchain.get_block_count() - 1
-        return json.dumps(self.blockchain.get_stats(id))
+        return self.blockchain.get_stats(id)
 
 class BlockCount(object):
     exposed = True
@@ -146,14 +155,16 @@ class Index(object):
     def GET(self):
         usage = """<pre>
   peercoin blockchain json api
-    by snakie (snakie@yahoo.com)
+    by snakie (snakie at yahoo.com)
     donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj<br>
         
   supported methods:
+    blocks/count - fetch total block count
     blocks/&lt;id&gt; - fetch block meta data
     blocks/last - fetch last block
     blocks/last/&lt;n&gt; - fetch last n blocks
-    stats/&lt;id&gt;  - fetch network statistics at a block number
+    network/&lt;id&gt;  - fetch network statistics at a block number
+    network/last - fetch last block
         </pre>""";
         return usage
 
@@ -164,8 +175,8 @@ api.blocks = Blocks(blockchain)
 api.blocks.last = LastBlock(blockchain)
 api.blocks.count = BlockCount(blockchain)
 
-api.stats = Stats(blockchain)
-api.stats.last = LastStats(blockchain)
+api.network = Stats(blockchain)
+api.network.last = LastStats(blockchain)
 
 config = {'/':
     {
