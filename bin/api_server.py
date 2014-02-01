@@ -167,6 +167,11 @@ class Index(object):
     network/last - fetch last block
         </pre>""";
         return usage
+    def default(self):
+        return "method not implemented"
+
+def error_404(status,message,traceback,version):
+    return "method not implemented"
 
 api = Index()
 blockchain = Blockchain()
@@ -184,6 +189,7 @@ config = {'/':
     }
 }
 application = cherrypy.tree.mount(api,"/api",config)
+cherrypy.config.update({'error_page.404': error_404})
 
 if __name__ == '__main__':
     #cherrypy.quickstart(application)

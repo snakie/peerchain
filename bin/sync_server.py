@@ -217,8 +217,8 @@ class Syncer(object):
         self.db = Database()
         self.dryrun = self.options.dryrun
         self.daemon = Peercoin()
-        self.notify = Notify('localhost',8080,'/broadcast/block')
-        self.txnotify = Notify('localhost',8080,'/broadcast/tx')
+        self.notify = Notify('127.0.0.1',80,'/broadcast/block')
+        self.txnotify = Notify('127.0.0.1',80,'/broadcast/tx')
     def parse_args(self):
         version = '0.0.1'
         self.parser = OptionParser(usage="\nPeercoin Daemon Sync Utility "+version+"\nSync's the lastest blocks into the database by default\n$ %prog [options]", version="%prog "+version)
