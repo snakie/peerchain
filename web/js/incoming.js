@@ -57,6 +57,14 @@ function message_received(text, id, channel) {
         }
     } else if(channel == 'tx') {
         add_tx(text);
+    } else if(channel == 'network') {
+        console.log(text);
+        //if index update that
+        //if not index update table
+        //add_stats(text);
+    } else if(channel == 'disconnect') {
+        console.log('received disconnect')
+        pushstream.connect()
     }
 }
 function update_last_block(block) {
@@ -72,17 +80,11 @@ $.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
        update_last_block(block);
        $("#blocks").append(cells.join(""));
        $("abbr.timeago").timeago()
-       if(!connected) {
-        connected = true;
-        pushstream.connect();
-       }
     });
    }
 });
 
 }
-
-var connected = false;
 
 
 jQuery(document).ready(function() {
@@ -90,7 +92,7 @@ var pushstream = new PushStream({
     host: window.location.hostname,
     port: window.location.port,
     modes: "websocket",
-    messagesPublishedAfter: 43200,
+    messagesPublishedAfter: 60*60*2,
     messagesControlByArgument: true
 });
 pushstream.onmessage = message_received;
