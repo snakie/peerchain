@@ -4,7 +4,11 @@
         <tr id='txn_header'><td>Hash</td><td>Age</td><td>PPC Out</td></tr>
     </table>
     </div>
+    <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
     <script>
     var tx_count = 10;
     var channels = ["tx"];
+    jQuery(document).ready(function() {
+        $("#txnav").addClass("active");
+    });
     </script>

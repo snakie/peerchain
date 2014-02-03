@@ -1,0 +1,19 @@
+    <div class="container">
+    <h3>Latest Network Statistics</h3>
+    <table id="stats" class="table">
+    <tr id='stats_header'>
+        <td>Height</td><td>Age</td><td>POW Blocks</td>
+        <td>POS Blocks</td><td>Mined Coins</td>
+        <td>Minted Coins</td><td>Destroyed Coins</td>
+        <td>Total Supply</td><td>Total Transactions</td>
+    </tr>
+    </table>
+    </div>
+    <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+    <script>
+    var network_count = 10;
+    var channels = ["network"]
+    jQuery(document).ready(function() {
+        $("#networknav").addClass("active");
+    });
+    </script>

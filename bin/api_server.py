@@ -39,9 +39,9 @@ class Blockchain(object):
         stats["minted_coins"] = format(stats["minted_coins"] / 1e6,'.6f')
         stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
-        stats["time"] = stats["time"].strftime("%Y-%m-%d %H:%M:%S")
+        stats["time"] = stats["time"].strftime("%Y-%m-%d %H:%M:%S+0000")
         return stats
-    def get_stats(self,id):
+    def get_stats(self,id,tojson=True):
         future = self.session.execute_async(self.stat_query, dict(id=id))
         try:
             rows = future.result()
@@ -50,7 +50,9 @@ class Blockchain(object):
         if len(rows) == 0:
             return "stats not found"
         stats = rows[0]
-        return json.dumps(self.stats_to_json(stats))
+        if tojson:
+            return json.dumps(self.stats_to_json(stats))
+        return self.stats_to_json(stats)
     def get_block(self,block_id,tojson=True):
         try:
             id = int(block_id)
@@ -139,9 +141,25 @@ class LastStats(object):
     exposed = True
     def __init__(self,blockchain):
         self.blockchain = blockchain
-    def GET (self):
-        id = self.blockchain.get_block_count() - 1
-        return self.blockchain.get_stats(id)
+    def GET (self, count=None):
+        if count == None:
+            count = 1
+            id = self.blockchain.get_block_count() - 1
+            return self.blockchain.get_stats(id)
+        try:
+            count = int(count)
+        except ValueError:
+            return "count must be a number"
+        if count > 10:
+            return "count cannot be greater then 10"
+        last_id = self.blockchain.get_block_count() - 1
+        data = { 'last' : last_id }
+        network = []
+        for c in range(count):
+            curr = last_id-c
+            network.append(self.blockchain.get_stats(curr,False))
+        data['data'] = network;
+        return json.dumps(data);
 
 class BlockCount(object):
     exposed = True

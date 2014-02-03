@@ -6,11 +6,15 @@
         <td>Difficulty</td><td>Reward</td>
         <td>Tx Count</td><td>Tx PPC Out</td>
         <td>Destroyed</td><td>Amount Staked</td>
-        <td>Stake Age (Coindays)</td>
+        <td>Stake Age (days)</td>
     </tr>
     </table>
     </div>
+    <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
     <script>
     var block_count = 10;
     var channels = ["block"]
+    jQuery(document).ready(function() {
+        $("#blocknav").addClass("active");
+    });
     </script>

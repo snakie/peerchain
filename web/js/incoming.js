@@ -1,5 +1,6 @@
 var last_block = 0;
 var blocks = new Array();
+var txns = new Array();
 
 function block_to_row(block) {
        var cells = [];
@@ -13,7 +14,22 @@ function block_to_row(block) {
        cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
        cells.push("<td>"+(block.pos == true ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
-       cells.push("<td>"+(block.pos == true ? block.coindays : '-')+"</td>");
+       cells.push("<td>"+(block.pos == true ? (block.coindays/parseFloat(block.staked)).toFixed(2) : '-')+"</td>");
+       cells.push("</tr>");
+       return cells;
+}
+function stats_to_row(stats) {
+       var cells = [];
+       cells.push("<tr>");
+       cells.push("<td><a href=\"/api/network/"+stats.last_block+"\">"+stats.last_block+"</td>");
+       cells.push("<td><abbr class=\"timeago\" title=\""+stats.time+"\">"+stats.time+"</abbr></td>");
+       cells.push("<td>"+stats.pow_blocks+"</td>");
+       cells.push("<td>"+stats.pos_blocks+"</td>");
+       cells.push("<td>"+parseFloat(stats.mined_coins).toFixed(2)+"</td>");
+       cells.push("<td>"+parseFloat(stats.minted_coins).toFixed(2)+"</td>");
+       cells.push("<td>"+parseFloat(stats.destroyed_fees).toFixed(2)+"</td>");
+       cells.push("<td>"+parseFloat(stats.money_supply).toFixed(2)+"</td>");
+       cells.push("<td>"+stats.transactions+"</td>");
        cells.push("</tr>");
        return cells;
 }
@@ -26,12 +42,30 @@ function txn_to_row(tx) {
     cells.push("</tr>");
     return cells;
 }
+function insert_index(header,id) {
+    var l = $("#"+header+" tr").size();
+    var j = 0;
+    for(i=1;i<l;i++) {
+        var height = parseInt($("#"+header+" tr:eq("+i+") td:first a").html());
+        //console.log("checking id:"+height);
+        if(id == height)
+            return -1;
+        if (id+1 == height)
+            j = i;
+    }
+    return j;
+}
 function add_block(block) {
     block.time = block.time.replace(' UTC','+0000')
     update_last_block(block);
     var cells = block_to_row(block);
-    $("#table_header").after(cells.join(""));
-    console.log("block length: "+$("#blocks tr").size());
+    var index = insert_index('blocks',block.id);
+    if(index < 0) {
+        console.log("already existing block "+id)
+        return;
+    }
+    $("#blocks tr:eq("+index+")").after(cells.join(""));
+    console.log("adding block "+block.id);
     if($("#blocks tr").size() > block_count+1) {
         $("#blocks tr:last").remove();
     }
@@ -40,12 +74,37 @@ function add_block(block) {
 function add_tx(tx) {
     var cells = txn_to_row(tx)
     $("#txn_header").after(cells.join(""));
-    console.log("txn length: "+$("#txns tr").size());
+    console.log("adding tx: "+tx.hash);
     if($("#txns tr").size() > tx_count+1) {
         $("#txns tr:last").remove();
     }
     $("abbr.timeago").timeago();
 
+}
+function add_stats(stats) {
+    stats.time = stats.time.replace(' UTC','+0000')
+    var cells = stats_to_row(stats);
+    var index = insert_index('stats',stats.last_block);
+    if(index < 0) {
+        console.log("already existing stats "+stats.last_block)
+        return;
+    }
+    $("#stats tr:eq("+index+")").after(cells.join(""));
+    console.log("adding stats "+stats.last_block);
+    if($("#stats tr").size() > network_count+1) {
+        $("#stats tr:last").remove();
+    }
+    $("abbr.timeago").timeago();
+}
+var pushstream;
+var txpushstream;
+function connect_ws() {
+        if(channels.indexOf("tx") > -1) {
+            if(channels.length > 2)
+                pushstream.connect();
+            txpushstream.connect();
+        } else if (channels.length > 1)
+            pushstream.connect();
 }
 function message_received(text, id, channel) {
     console.log('web socket message on channel: "'+channel+'" id: "'+id+'"')
@@ -65,7 +124,7 @@ function message_received(text, id, channel) {
         //add_stats(text);
     } else if(channel == 'disconnect') {
         console.log('received disconnect')
-        pushstream.connect()
+        connect_ws();
     }
 }
 function update_last_block(block) {
@@ -74,34 +133,55 @@ function update_last_block(block) {
     }
 }
 function ajax_blockfetch() {
-$.ajax({ url: "/api/blocks/last/6", dataType: "json", success: function(json) {
+    $.ajax({ url: "/api/blocks/last/"+block_count, dataType: "json", success: function(json) {
     var blocks = json.blocks;
     $.each( blocks, function( index, block ) {
-       var cells = block_to_row(block)
-       update_last_block(block);
-       $("#table_header").after(cells.join(""));
+       add_block(block)
        $("abbr.timeago").timeago()
-       pushstream.connect();
+    });
+    connect_ws()
+   }
+});
+}
+function ajax_networkfetch() {
+    $.ajax({ url: "/api/network/last/"+network_count, dataType: "json", success: function(json) {
+    var stats = json.data;
+    $.each( stats, function( index, stat ) {
+       add_stats(stat)
+       $("abbr.timeago").timeago()
     });
    }
 });
+}
+function get_stream(published_after) {
+    var temp = new PushStream({
+        host: window.location.hostname,
+        port: window.location.port,
+        modes: "websocket",
+        messagesPublishedAfter: published_after,
+        messagesControlByArgument: true
+    });
+    return temp;
 
 }
-
 
 jQuery(document).ready(function() {
-var pushstream = new PushStream({
-    host: window.location.hostname,
-    port: window.location.port,
-    modes: "websocket",
-    messagesPublishedAfter: 60*60*2,
-    messagesControlByArgument: true
-});
-pushstream.onmessage = message_received;
-for(i=0;i<channels.length;i++) {
-    pushstream.addChannel(channels[i])
-}
-//pushstream.connect();
-ajax_blockfetch()
-});
+    pushstream = get_stream(10);
+    pushstream.onmessage = message_received;
+    if(channels.indexOf("tx") > -1) {
+        txpushstream = get_stream(7200);
+        txpushstream.addChannel("tx");
+        txpushstream.onmessage = message_received;
+    }
+    for(i=0;i<channels.length;i++) {
+        if(channels[i] != "tx") 
+            pushstream.addChannel(channels[i])
+    }
+    if(typeof block_count === 'undefined')
+        connect_ws();
+    else
+        ajax_blockfetch()
+    if(typeof network_count === 'number')
+        ajax_networkfetch()
+ });
 
