@@ -122,10 +122,7 @@ function message_received(text, id, channel) {
             clearInterval(loader);
         }
     } else if(channel == 'network') {
-        console.log(text);
-        //if index update that
-        //if not index update table
-        //add_stats(text);
+        add_stats(text);
     } else if(channel == 'disconnect') {
         console.log('received disconnect')
         connect_ws();
@@ -168,6 +165,24 @@ function get_stream(published_after) {
     return temp;
 
 }
+function get_stats(id) {
+    var stats;
+    $.ajax({ url: "/api/network/"+id, dataType: "json",
+        async: false, success: function( index, nstats) {
+            stats = nstats;
+        } });
+    return stats;
+}
+function load_network_review() {
+    var last_stats = get_stats('last');
+    var last_block = last_stats.last_block;
+    var old_block = last_block - network_review;
+    var old_stats = get_stats(old_block);
+    console('comparing block '+last_block+' to block '+old_block);
+
+    
+    
+}
 jQuery(document).ready(function() {
     pushstream = get_stream(10);
     pushstream.onmessage = message_received;
@@ -198,6 +213,8 @@ jQuery(document).ready(function() {
             span.html(ellipsis);
         }, 1000);
      }
-
+     if(typeof network_review !== 'undefined') {
+        load_network_review()
+     }
  });
 
