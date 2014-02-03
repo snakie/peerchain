@@ -183,6 +183,7 @@ class Index(object):
     blocks/last/&lt;n&gt; - fetch last n blocks
     network/&lt;id&gt;  - fetch network statistics at a block number
     network/last - fetch last block
+    network/last/&lt;n&gt; - fetch last n network statistics
         </pre>""";
         return usage
     def default(self):

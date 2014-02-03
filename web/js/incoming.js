@@ -1,6 +1,7 @@
 var last_block = 0;
 var blocks = new Array();
 var txns = new Array();
+var loader;
 
 function block_to_row(block) {
        var cells = [];
@@ -117,6 +118,9 @@ function message_received(text, id, channel) {
         }
     } else if(channel == 'tx') {
         add_tx(text);
+        if($("#text-loader").size() == 0) {
+            clearInterval(loader);
+        }
     } else if(channel == 'network') {
         console.log(text);
         //if index update that
@@ -164,7 +168,6 @@ function get_stream(published_after) {
     return temp;
 
 }
-
 jQuery(document).ready(function() {
     pushstream = get_stream(10);
     pushstream.onmessage = message_received;
@@ -183,5 +186,18 @@ jQuery(document).ready(function() {
         ajax_blockfetch()
     if(typeof network_count === 'number')
         ajax_networkfetch()
+    if($("#text-loader").size() > 0) {
+        loader = setInterval(function () {
+            //console.log("adding loading ellipses");
+            var span = $("#text-loader span:eq(0)");
+            var ellipsis = span.html();
+            ellipsis = ellipsis + ".";
+            if (ellipsis.length > 5) {
+                ellipsis = ".";
+            }
+            span.html(ellipsis);
+        }, 1000);
+     }
+
  });
 
