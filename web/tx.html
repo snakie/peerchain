@@ -1,59 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>peerchain.net - The Peercoin Blockchain</title>
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
-  </head>
-  <body>
-  <div id="wrap">
-    <div id="header" class="navbar navbar-default navbar-static-top" role="navigation">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          
-          <a class="navbar-brand" href="#"><img src="leaf.png"/>&nbsp;peerchain.net</a>
-        </div>
-        <div class="navbar-collapse collapse">
-          <ul class="nav navbar-nav navbar-right">
-            <li><a href="/">Home</a></li>
-            <li><a href="blocks.html">Blocks</a></li>
-            <li class="active"><a href="tx.html">Transactions</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </div>
     <div class="container">
     <h3>Latest Transactions</h3>
     <table id="txns" class="table">
         <tr id='txn_header'><td>Hash</td><td>Age</td><td>PPC Out</td></tr>
     </table>
     </div>
-    <div id="push"></div>
-    </div>
-    <div id="footer">
-        <div class="container">
-                <div class="text-center">peerchain by snakie (snakie at yahoo.com) - <a href="api">api</a></div>
-                <div class="text-center">donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj</div>
-        </div>
-    </div>
     <script>
     var tx_count = 10;
     var channels = ["tx"];
     </script>
-    <script type="text/javascript" src="js/jquery-1.10.2.js"></script>
-    <script type="text/javascript" src="js/jquery.timeago.js"></script>
-    <script type="text/javascript" src="js/incoming.js"></script>
-    <script type="text/javascript" src="js/pushstream.js"></script>
-    <script type="text/javascript" src="js/bootstrap.js"></script>
-
-  </body>
-</html>

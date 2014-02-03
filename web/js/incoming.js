@@ -1,4 +1,5 @@
 var last_block = 0;
+var blocks = new Array();
 
 function block_to_row(block) {
        var cells = [];
@@ -30,7 +31,7 @@ function add_block(block) {
     update_last_block(block);
     var cells = block_to_row(block);
     $("#table_header").after(cells.join(""));
-    console.log("block length: "+$("#blocks div.row").size());
+    console.log("block length: "+$("#blocks tr").size());
     if($("#blocks tr").size() > block_count+1) {
         $("#blocks tr:last").remove();
     }
@@ -39,7 +40,7 @@ function add_block(block) {
 function add_tx(tx) {
     var cells = txn_to_row(tx)
     $("#txn_header").after(cells.join(""));
-    console.log("txn length: "+$("#txns div.row").size());
+    console.log("txn length: "+$("#txns tr").size());
     if($("#txns tr").size() > tx_count+1) {
         $("#txns tr:last").remove();
     }
@@ -73,13 +74,14 @@ function update_last_block(block) {
     }
 }
 function ajax_blockfetch() {
-$.ajax({ url: "/api/blocks/last/10", dataType: "json", success: function(json) {
+$.ajax({ url: "/api/blocks/last/6", dataType: "json", success: function(json) {
     var blocks = json.blocks;
     $.each( blocks, function( index, block ) {
        var cells = block_to_row(block)
        update_last_block(block);
-       $("#blocks").append(cells.join(""));
+       $("#table_header").after(cells.join(""));
        $("abbr.timeago").timeago()
+       pushstream.connect();
     });
    }
 });
@@ -99,6 +101,7 @@ pushstream.onmessage = message_received;
 for(i=0;i<channels.length;i++) {
     pushstream.addChannel(channels[i])
 }
-pushstream.connect();
+//pushstream.connect();
+ajax_blockfetch()
 });
 
