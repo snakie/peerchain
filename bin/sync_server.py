@@ -176,9 +176,8 @@ class Database(object):
         future = self.session.execute_async(self.block_query,block)
         #try:
         rows = future.result()
-        if stats:
-            future = self.session.execute_async(self.stats_query,stats)
-            rows = future.result()
+        future = self.session.execute_async(self.stats_query,stats)
+        rows = future.result()
         #except Exception as e:
         #    return str(e)
         #print block
@@ -331,14 +330,18 @@ class Syncer(object):
         if stats:
             stats = self.update_stats(stats,data)
             logging.debug(data)
+            if self.dryrun:
+                logging.info("not inserting block: dryrun enabled")
+            else:
+                logging.debug("inserting block: dryrun not enabled")
+                self.db.insert_block(data,stats)
         else:
-            logging.warning("failed to find previous stats")
+            logging.error("failed to find previous stats - unable to sync")
+            # notifies on the websocket still go out
+            self.notify.post_block(data,block["time"])
+            sys.exit(1);
         #print stats
-        if self.dryrun:
-            logging.info("not inserting block: dryrun enabled")
-        else:
-            logging.debug("inserting block: dryrun not enabled")
-            self.db.insert_block(data,stats)
+        # even though I may not have inserted the block
         self.notify.post_block(data,block["time"])
         self.networknotify.post_stats(stats)
         
@@ -355,8 +358,7 @@ class Syncer(object):
         self.get_heights() 
         # check for re-org
         if self.diff == 0:
-            logging.info('diff 0 - checking chain consistency instead')
-            self.check_chains()
+            logging.info('diff 0 - nothing to sync')
         else:            
             logging.debug("syncing "+str(self.diff)+" blocks...")
             self.insert_recent_blocks()

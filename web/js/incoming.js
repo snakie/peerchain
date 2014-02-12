@@ -15,7 +15,7 @@ function block_to_row(block) {
        cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
        cells.push("<td>"+(block.pos == true ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
-       cells.push("<td>"+(block.pos == true ? (block.coindays/parseFloat(block.staked)).toFixed(2) : '-')+"</td>");
+       cells.push("<td>"+(block.pos == true ? (block.stakeage/(60*60*24)).toFixed(2) : '-')+"</td>");
        cells.push("</tr>");
        return cells;
 }
@@ -58,7 +58,6 @@ function insert_index(header,id) {
 }
 function add_block(block) {
     block.time = block.time.replace(' UTC','+0000')
-    update_last_block(block);
     var cells = block_to_row(block);
     var index = insert_index('blocks',block.id);
     if(index < 0) {
@@ -111,11 +110,7 @@ function message_received(text, id, channel) {
     console.log('web socket message on channel: "'+channel+'" id: "'+id+'"')
     //console.log(text);
     if (channel == 'block') {
-        if(text.id > last_block) {
-            add_block(text);
-        } else {
-            console.log("block too old")
-        }
+        add_block(text);
     } else if(channel == 'tx') {
         add_tx(text);
         if($("#text-loader").size() == 0) {
@@ -126,11 +121,6 @@ function message_received(text, id, channel) {
     } else if(channel == 'disconnect') {
         console.log('received disconnect')
         connect_ws();
-    }
-}
-function update_last_block(block) {
-    if (last_block < block.id) {
-        last_block = block.id;
     }
 }
 function ajax_blockfetch() {
@@ -174,14 +164,7 @@ function get_stats(id) {
     return stats;
 }
 function load_network_review() {
-    var last_stats = get_stats('last');
-    var last_block = last_stats.last_block;
-    var old_block = last_block - network_review;
-    var old_stats = get_stats(old_block);
-    console('comparing block '+last_block+' to block '+old_block);
-
-    
-    
+    //looking for an ajax call /compare/last/2016
 }
 jQuery(document).ready(function() {
     pushstream = get_stream(10);
