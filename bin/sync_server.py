@@ -16,6 +16,12 @@ class Notify(object):
         self.host = host
         self.port = port
         self.uri = uri
+    def stats_to_json(self,stats):
+        stats["mined_coins"] = format(stats["mined_coins"] / 1e6,'.6f')
+        stats["minted_coins"] = format(stats["minted_coins"] / 1e6,'.6f')
+        stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
+        stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
+        return stats
     def block_to_json(self,block,time):
         block["staked"] = format(block["staked"] / 1e6,'.6f')
         block["diff"] = format(block["diff"],'.8f')
@@ -39,7 +45,8 @@ class Notify(object):
         data = data.transaction[0]
         self.post(data)
     def post_stats(self,data):
-        self.post(data)
+        jsondata = self.stats_to_json(data)
+        self.post(jsondata)
     def post_block(self,data,time):
         jsondata = self.block_to_json(data,time)
         self.post(jsondata)
@@ -305,7 +312,7 @@ class Syncer(object):
         tx_broadcast["time"] = date.strftime('%Y-%m-%d %H:%M:%S%z')
         tx_broadcast["value"] = format(tx_broadcast["value"] / 1e6,'.6f')
         self.txnotify.post(tx_broadcast)
-    def update_stats(self,stats,data):
+    def update_stats(self,stats,time,data):
         if data["pos"]:
             stats["pos_blocks"] += 1
             stats["minted_coins"] += data["reward"]
@@ -317,8 +324,9 @@ class Syncer(object):
         stats["destroyed_fees"] += data["destroyed"]
         stats["last_block"] += 1
         stats["transactions"] += data["txcount"]
-        delta = datetime.datetime.utcnow()-datetime.datetime(1970,1,1)
-        stats["time"] = (delta.days * 86400 + delta.seconds) * 1000
+        #delta = datetime.datetime.utcnow()-datetime.datetime(1970,1,1)
+        #stats["time"] = (delta.days * 86400 + delta.seconds) * 1000
+        stats["time"] = time
 
         return stats 
     def insert_block(self,hash):
@@ -328,7 +336,7 @@ class Syncer(object):
         stats = self.db.get_stats(data["id"] - 1)
         #print data
         if stats:
-            stats = self.update_stats(stats,data)
+            stats = self.update_stats(stats,block["time"],data)
             logging.debug(data)
             if self.dryrun:
                 logging.info("not inserting block: dryrun enabled")
