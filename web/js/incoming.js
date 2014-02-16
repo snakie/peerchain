@@ -97,15 +97,6 @@ function add_stats(stats) {
     $("abbr.timeago").timeago();
 }
 var pushstream;
-var txpushstream;
-function connect_ws() {
-        if(channels.indexOf("tx") > -1) {
-            if(channels.length > 2)
-                pushstream.connect();
-            txpushstream.connect();
-        } else if (channels.length > 1)
-            pushstream.connect();
-}
 function message_received(text, id, channel) {
     console.log('web socket message on channel: "'+channel+'" id: "'+id+'"')
     //console.log(text);
@@ -120,7 +111,7 @@ function message_received(text, id, channel) {
         add_stats(text);
     } else if(channel == 'disconnect') {
         console.log('received disconnect')
-        connect_ws();
+        pushstream.connect();
     }
 }
 function ajax_blockfetch() {
@@ -130,7 +121,6 @@ function ajax_blockfetch() {
        add_block(block)
        $("abbr.timeago").timeago()
     });
-    connect_ws()
    }
 });
 }
@@ -167,20 +157,12 @@ function load_network_review() {
     //looking for an ajax call /compare/last/2016
 }
 jQuery(document).ready(function() {
-    pushstream = get_stream(10);
+    pushstream = get_stream(7200);
     pushstream.onmessage = message_received;
-    if(channels.indexOf("tx") > -1) {
-        txpushstream = get_stream(7200);
-        txpushstream.addChannel("tx");
-        txpushstream.onmessage = message_received;
-    }
     for(i=0;i<channels.length;i++) {
-        if(channels[i] != "tx") 
-            pushstream.addChannel(channels[i])
+        pushstream.addChannel(channels[i])
     }
-    if(typeof block_count === 'undefined')
-        connect_ws();
-    else
+    if(typeof block_count === 'number')
         ajax_blockfetch()
     if(typeof network_count === 'number')
         ajax_networkfetch()
@@ -199,5 +181,6 @@ jQuery(document).ready(function() {
      if(typeof network_review !== 'undefined') {
         load_network_review()
      }
+     pushstream.connect();
  });
 
