@@ -31,6 +31,7 @@ class Blockchain(object):
         block["sent"] = format(block["sent"] / 1e6,'.6f')
         block["received"] = format(block["received"] / 1e6,'.6f')
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
+        block["stakeage"] = format(block["stakeage"],'.2f')
         block["time"] = block["time"].strftime("%Y-%m-%d %H:%M:%S+0000")
         return block
     def stats_to_json(self,stattuple):
@@ -136,6 +137,9 @@ class Stats(object):
         if id < 10000000:
             return self.blockchain.get_stats(id)
         return "block height too large"
+
+#class CompareStats(object):
+#    exposed = True
 
 class LastStats(object):
     exposed = True

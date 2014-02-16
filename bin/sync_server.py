@@ -78,7 +78,7 @@ class Peercoin(object):
             data["txcount"] = data["txcount"] - 2
         else: 
             data["pos"] = False
-            data["coindays"] = -1
+            data["stakeage"] = 0
             data["txcount"] = data["txcount"] - 1
         data["hashprevblock"] = block["previousblockhash"]
         data["hashmerkleroot"] = block["merkleroot"]
@@ -96,14 +96,14 @@ class Peercoin(object):
         count = 0
         for tx in block["tx"]:
             txdata = self.conn.gettransaction(tx)
-            #logging.debug(txdata)
+            logging.debug(txdata)
             for txn in txdata.transaction:
                 for out in txn["outpoints"]:
                     data["received"] += long(out["value"])
                 for inp in txn["inpoints"]:
                     data["sent"] += long(inp["value"])
                 if data["pos"] and count == 1:
-                    data["coindays"] = txn["coindays"]
+                    data["stakeage"] = round(txn["coindays"] / (data["sent"]/1e6),2)
             if data["pos"] and count < 2:
                 data["staked"] += data["sent"]
             count += 1
@@ -130,7 +130,7 @@ class Database(object):
         self.delete_query = SimpleStatement("delete from blocks where id=%(id)s")
         self.delete_stats_query = SimpleStatement("delete from stats where last_block=%(id)s")
         self.stats_query = SimpleStatement("INSERT INTO stats (last_block,destroyed_fees,mined_coins,minted_coins,money_supply,pos_blocks,pow_blocks,time,transactions) VALUES (%(last_block)s,%(destroyed_fees)s,%(mined_coins)s,%(minted_coins)s,%(money_supply)s,%(pos_blocks)s,%(pow_blocks)s,%(time)s,%(transactions)s)")
-        self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,coindays,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(coindays)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
+        self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,stakeage,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(stakeage)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
     def shutdown(self):
         self.cluster.shutdown()
     def block_count(self):
@@ -314,7 +314,7 @@ class Syncer(object):
             stats["mined_coins"] += data["reward"]
         stats["money_supply"] += data["reward"]
         stats["money_supply"] -= data["destroyed"]
-        stats["destroyed_fees"] -= data["destroyed"]
+        stats["destroyed_fees"] += data["destroyed"]
         stats["last_block"] += 1
         stats["transactions"] += data["txcount"]
         delta = datetime.datetime.utcnow()-datetime.datetime(1970,1,1)

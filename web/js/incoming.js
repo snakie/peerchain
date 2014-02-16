@@ -15,7 +15,7 @@ function block_to_row(block) {
        cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
        cells.push("<td>"+(block.pos == true ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
-       cells.push("<td>"+(block.pos == true ? (block.stakeage/(60*60*24)).toFixed(2) : '-')+"</td>");
+       cells.push("<td>"+(block.pos == true ? parseFloat(block.stakeage).toFixed(2) : '-')+"</td>");
        cells.push("</tr>");
        return cells;
 }
