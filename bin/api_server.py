@@ -44,6 +44,12 @@ class Blockchain(object):
         return stats
     #def compare_stats(self,firsttuple,secondtuple):
     def compare_stats(self,firsttuple,secondtuple):
+        if firsttuple == 'stats not found':
+            return "error, unable to find stats for first id"
+        if secondtuple == 'stats not found':
+            return "error, unable to find stats for second id"
+        print firsttuple
+        print secondtuple
         first = firsttuple._asdict()
         second = secondtuple._asdict()
         ret = {}
@@ -288,7 +294,10 @@ config = {'/':
     }
 }
 application = cherrypy.tree.mount(api,"/api",config)
-cherrypy.config.update({'error_page.404': error_404})
+cherrypy.config.update({'error_page.404': error_404, 
+                        'environment':'production',
+                        'log.error_file': '/app/logs/api_server.error.log',
+                        'log.access_file': '/app/logs/api_server.access.log'})
 
 if __name__ == '__main__':
     #cherrypy.quickstart(application)
