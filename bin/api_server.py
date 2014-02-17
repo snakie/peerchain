@@ -48,8 +48,8 @@ class Blockchain(object):
             return "error, unable to find stats for first id"
         if secondtuple == 'stats not found':
             return "error, unable to find stats for second id"
-        print firsttuple
-        print secondtuple
+        #print firsttuple
+        #print secondtuple
         first = firsttuple._asdict()
         second = secondtuple._asdict()
         ret = {}
@@ -60,13 +60,20 @@ class Blockchain(object):
         ret['pow_blocks'] = first['pow_blocks'] - second['pow_blocks']
         ret['transactions'] = first['transactions'] - second['transactions']
         ret['duration'] = first['time'] - second['time']
+        ret["inflation_rate"] = (first["money_supply"] - second["money_supply"]) / 1e6
+        ret["money_supply_delta"] = format(ret["inflation_rate"],'.6f')
+        total_seconds = ret['duration'].days * 86400 + ret['duration'].seconds
+        print total_seconds
+        times_in_year = 31536000 / total_seconds
+        print times_in_year
+        print
+        ret['inflation_rate'] = format(100*ret['inflation_rate'] * times_in_year / (first['money_supply']/1e6),'.2f')
         ret['duration'] = ret['duration'].__str__()
         ret["money_supply_end"] = format(first["money_supply"] / 1e6,'.6f')
-        ret["money_supply_delta"] = format((first["money_supply"]-second["money_supply"]) / 1e6,'.6f')
         ret["mined_coins"] = format((first["mined_coins"]-second["mined_coins"]) / 1e6,'.6f')
         ret["minted_coins"] = format((first["minted_coins"]-second["minted_coins"]) / 1e6,'.6f')
         ret["destroyed_fees"] = format((first["destroyed_fees"]-second["destroyed_fees"]) / 1e6,'.6f')
-        print first
+        #print first
         return json.dumps(ret)
     def get_stats(self,id,pretty=True):
         future = self.session.execute_async(self.stat_query, dict(id=id))
@@ -295,7 +302,7 @@ config = {'/':
 }
 application = cherrypy.tree.mount(api,"/api",config)
 cherrypy.config.update({'error_page.404': error_404, 
-                        'environment':'production',
+                 #       'environment':'production',
                         'log.error_file': '/app/logs/api_server.error.log',
                         'log.access_file': '/app/logs/api_server.access.log'})
 

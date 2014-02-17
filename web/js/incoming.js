@@ -44,14 +44,15 @@ function txn_to_row(tx) {
     return cells;
 }
 function compare_to_row(compare) {
-    console.log(compare);
     var cells = []
     cells.push("<tr>");
-    cells.push("<td>"+compare.last_block+"</td>");
+    cells.push("<td><a href=\"/api/compare/delta/"+compare.last_block+"/"+network_review+"\">"+compare.last_block+"</td>");
     cells.push("<td>"+parseFloat(compare.money_supply_end).toFixed(2)+"</td>");
-    cells.push("<td>"+"inflation rate here"+"</td>");
+    cells.push("<td>"+parseFloat(100*compare.pos_blocks/(compare.pos_blocks+compare.pow_blocks)).toFixed(2)+"%</td>");
+    cells.push("<td>"+compare.inflation_rate+"%</td>");
     cells.push("<td>"+parseFloat(compare.mined_coins).toFixed(2)+"</td>");
     cells.push("<td>"+parseFloat(compare.minted_coins).toFixed(2)+"</td>");
+    cells.push("<td>"+parseFloat(compare.destroyed_fees).toFixed(2)+"</td>");
     cells.push("<td>"+compare.duration+"</td>");
     cells.push("</tr>");
     return cells;
