@@ -43,6 +43,19 @@ function txn_to_row(tx) {
     cells.push("</tr>");
     return cells;
 }
+function compare_to_row(compare) {
+    console.log(compare);
+    var cells = []
+    cells.push("<tr>");
+    cells.push("<td>"+compare.last_block+"</td>");
+    cells.push("<td>"+parseFloat(compare.money_supply_end).toFixed(2)+"</td>");
+    cells.push("<td>"+"inflation rate here"+"</td>");
+    cells.push("<td>"+parseFloat(compare.mined_coins).toFixed(2)+"</td>");
+    cells.push("<td>"+parseFloat(compare.minted_coins).toFixed(2)+"</td>");
+    cells.push("<td>"+compare.duration+"</td>");
+    cells.push("</tr>");
+    return cells;
+}
 function insert_index(header,id) {
     var l = $("#"+header+" tr").size();
     var j = 0;
@@ -70,6 +83,12 @@ function add_block(block) {
         $("#blocks tr:last").remove();
     }
     $("abbr.timeago").timeago();
+} 
+function add_comparison(stats) {
+    var cells = compare_to_row(stats);
+    $("#review tr:eq(0)").after(cells.join(""));
+    $("#review tr:last").remove();
+
 }
 function add_tx(tx) {
     var cells = txn_to_row(tx)
@@ -134,6 +153,12 @@ function ajax_networkfetch() {
    }
 });
 }
+function ajax_comparefetch() {
+    $.ajax({ url: "/api/compare/last/"+network_review, dataType: "json", success: function(json) {
+        add_comparison(json);
+   }
+});
+}
 function get_stream(published_after) {
     var temp = new PushStream({
         host: window.location.hostname,
@@ -163,9 +188,9 @@ jQuery(document).ready(function() {
         pushstream.addChannel(channels[i])
     }
     if(typeof block_count === 'number')
-        ajax_blockfetch()
+        ajax_blockfetch();
     if(typeof network_count === 'number')
-        ajax_networkfetch()
+        ajax_networkfetch();
     if($("#text-loader").size() > 0) {
         loader = setInterval(function () {
             //console.log("adding loading ellipses");
@@ -178,8 +203,8 @@ jQuery(document).ready(function() {
             span.html(ellipsis);
         }, 1000);
      }
-     if(typeof network_review !== 'undefined') {
-        load_network_review()
+     if(typeof network_review === 'number') {
+        ajax_comparefetch();
      }
      pushstream.connect();
  });
