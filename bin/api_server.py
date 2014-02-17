@@ -42,7 +42,27 @@ class Blockchain(object):
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
         stats["time"] = stats["time"].strftime("%Y-%m-%d %H:%M:%S+0000")
         return stats
-    def get_stats(self,id,tojson=True):
+    #def compare_stats(self,firsttuple,secondtuple):
+    def compare_stats(self,firsttuple,secondtuple):
+        first = firsttuple._asdict()
+        second = secondtuple._asdict()
+        ret = {}
+        ret['last_block'] = first['last_block']
+        ret['first_block'] = second['last_block']
+        ret['block_delta'] = first['last_block'] - second['last_block']
+        ret['pos_blocks'] = first['pos_blocks'] - second['pos_blocks']
+        ret['pow_blocks'] = first['pow_blocks'] - second['pow_blocks']
+        ret['transactions'] = first['transactions'] - second['transactions']
+        ret['duration'] = first['time'] - second['time']
+        ret['duration'] = ret['duration'].__str__()
+        ret["money_supply_end"] = format(first["money_supply"] / 1e6,'.6f')
+        ret["money_supply_delta"] = format((first["money_supply"]-second["money_supply"]) / 1e6,'.6f')
+        ret["mined_coins"] = format((first["mined_coins"]-second["mined_coins"]) / 1e6,'.6f')
+        ret["minted_coins"] = format((first["minted_coins"]-second["minted_coins"]) / 1e6,'.6f')
+        ret["destroyed_fees"] = format((first["destroyed_fees"]-second["destroyed_fees"]) / 1e6,'.6f')
+        print first
+        return json.dumps(ret)
+    def get_stats(self,id,pretty=True):
         future = self.session.execute_async(self.stat_query, dict(id=id))
         try:
             rows = future.result()
@@ -51,9 +71,9 @@ class Blockchain(object):
         if len(rows) == 0:
             return "stats not found"
         stats = rows[0]
-        if tojson:
-            return json.dumps(self.stats_to_json(stats))
-        return self.stats_to_json(stats)
+        if pretty:
+            return self.stats_to_json(stats)
+        return stats
     def get_block(self,block_id,tojson=True):
         try:
             id = int(block_id)
@@ -135,11 +155,56 @@ class Stats(object):
         except ValueError:
             return "block height must be a number"
         if id < 10000000:
-            return self.blockchain.get_stats(id)
+            return json.dumps(self.blockchain.get_stats(id))
         return "block height too large"
 
-#class CompareStats(object):
-#    exposed = True
+class CompareLastStats(object):
+    exposed = True
+    def __init__(self,blockchain):
+        self.blockchain = blockchain
+    def GET (self, delta):
+        try:
+            delta = int(delta)
+        except ValueError:
+            return "delta must be a number"
+        last = self.blockchain.get_block_count() - 1
+        if delta > last:
+            return "delta must be less then total block height"
+        first_stats = self.blockchain.get_stats(last,False)
+        second_stats = self.blockchain.get_stats(last-delta,False)
+        return blockchain.compare_stats(first_stats,second_stats)
+
+class CompareDeltaStats(object):
+    exposed = True
+    def __init__(self,blockchain):
+        self.blockchain = blockchain
+    def GET (self, first, delta):
+        try:
+            first = int(first)
+            delta = int(delta)
+        except ValueError:
+            return "block id and delta must be numbers"
+        if delta > first:
+            return "delta must be less then total block height"
+        first_stats = self.blockchain.get_stats(first,False)
+        second_stats = self.blockchain.get_stats(first-delta,False)
+        return blockchain.compare_stats(first_stats,second_stats)
+
+class CompareStats(object):
+    exposed = True
+    def __init__(self,blockchain):
+        self.blockchain = blockchain
+    def GET (self, first, second):
+        try:
+            first = int(first)
+            second = int(second)
+        except ValueError:
+            return "first and second block ids must be numbers"
+        if second > first:
+            return "first id must be greater then second id"
+        first_stats = self.blockchain.get_stats(first,False)
+        second_stats = self.blockchain.get_stats(second,False)
+        return blockchain.compare_stats(first_stats,second_stats)
 
 class LastStats(object):
     exposed = True
@@ -149,7 +214,7 @@ class LastStats(object):
         if count == None:
             count = 1
             id = self.blockchain.get_block_count() - 1
-            return self.blockchain.get_stats(id)
+            return json.dumps(self.blockchain.get_stats(id))
         try:
             count = int(count)
         except ValueError:
@@ -161,7 +226,7 @@ class LastStats(object):
         network = []
         for c in range(count):
             curr = last_id-c
-            network.append(self.blockchain.get_stats(curr,False))
+            network.append(self.blockchain.get_stats(curr))
         data['data'] = network;
         return json.dumps(data);
 
@@ -181,13 +246,20 @@ class Index(object):
     donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj<br>
         
   supported methods:
+
     blocks/count - fetch total block count
     blocks/&lt;id&gt; - fetch block meta data
     blocks/last - fetch last block
     blocks/last/&lt;n&gt; - fetch last n blocks
+
     network/&lt;id&gt;  - fetch network statistics at a block number
     network/last - fetch last block
     network/last/&lt;n&gt; - fetch last n network statistics
+
+    compare/&lt;first_id&gt;/&lt;second_id&gt; - compare network stats for two block heights
+    compare/delta/&lt;id&gt;/&lt;delta&gt; - compare network stats for a block 'id' and block 'id-delta'
+    compare/last/&lt;delta&gt; - compare last block and 'last block - delta' network stats
+    
         </pre>""";
         return usage
     def default(self):
@@ -205,6 +277,10 @@ api.blocks.count = BlockCount(blockchain)
 
 api.network = Stats(blockchain)
 api.network.last = LastStats(blockchain)
+
+api.compare = CompareStats(blockchain)
+api.compare.delta = CompareDeltaStats(blockchain)
+api.compare.last = CompareLastStats(blockchain)
 
 config = {'/':
     {

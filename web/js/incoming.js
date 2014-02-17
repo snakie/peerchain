@@ -100,7 +100,7 @@ var pushstream;
 function message_received(text, id, channel) {
     console.log('web socket message on channel: "'+channel+'" id: "'+id+'"')
     //console.log(text);
-    if (channel == 'block') {
+    if (channel == 'blocks') {
         add_block(text);
     } else if(channel == 'tx') {
         add_tx(text);

@@ -225,7 +225,7 @@ class Syncer(object):
         self.db = Database()
         self.dryrun = self.options.dryrun
         self.daemon = Peercoin()
-        self.notify = Notify('127.0.0.1',80,'/broadcast/block')
+        self.notify = Notify('127.0.0.1',80,'/broadcast/blocks')
         self.txnotify = Notify('127.0.0.1',80,'/broadcast/tx')
         self.networknotify = Notify('127.0.0.1',80,'/broadcast/network')
     def parse_args(self):
