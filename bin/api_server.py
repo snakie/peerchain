@@ -63,10 +63,7 @@ class Blockchain(object):
         ret["inflation_rate"] = (first["money_supply"] - second["money_supply"]) / 1e6
         ret["money_supply_delta"] = format(ret["inflation_rate"],'.6f')
         total_seconds = ret['duration'].days * 86400 + ret['duration'].seconds
-        print total_seconds
         times_in_year = 31536000 / total_seconds
-        print times_in_year
-        print
         ret['inflation_rate'] = format(100*ret['inflation_rate'] * times_in_year / (first['money_supply']/1e6),'.2f')
         ret['duration'] = ret['duration'].__str__()
         ret["money_supply_end"] = format(first["money_supply"] / 1e6,'.6f')
@@ -302,7 +299,7 @@ config = {'/':
 }
 application = cherrypy.tree.mount(api,"/api",config)
 cherrypy.config.update({'error_page.404': error_404, 
-                 #       'environment':'production',
+                        'environment':'production',
                         'log.error_file': '/app/logs/api_server.error.log',
                         'log.access_file': '/app/logs/api_server.access.log'})
 

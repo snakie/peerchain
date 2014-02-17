@@ -31,6 +31,11 @@ class Notify(object):
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
         block["time"] = time
         return block
+    def get_comparison(self,id,count):
+        conn = httplib.HTTPConnection(self.host,self.port)
+        conn.request("GET", "/api/compare/delta/"+str(id)+"/"+str(count))
+        res = conn.getresponse()
+        return res.read()
     def post(self,data):
         conn = httplib.HTTPConnection(self.host,self.port)
         conn.request("POST", self.uri, json.dumps(data))
@@ -51,6 +56,9 @@ class Notify(object):
         jsondata = self.block_to_json(data,time)
         self.post(jsondata)
         #sys.exit(0);
+    def post_comparison(self,id,count=2016):
+        data = self.get_comparison(id,count)
+        self.post(data)
 
 class Peercoin(object):
     def __init__(self):
@@ -228,6 +236,7 @@ class Syncer(object):
         self.notify = Notify('127.0.0.1',80,'/broadcast/blocks')
         self.txnotify = Notify('127.0.0.1',80,'/broadcast/tx')
         self.networknotify = Notify('127.0.0.1',80,'/broadcast/network')
+        self.comparisonnotify = Notify('127.0.0.1',80,'/broadcast/delta')
     def parse_args(self):
         version = '0.0.1'
         self.parser = OptionParser(usage="\nPeercoin Daemon Sync Utility "+version+"\nSync's the lastest blocks into the database by default\n$ %prog [options]", version="%prog "+version)
@@ -352,6 +361,7 @@ class Syncer(object):
         # even though I may not have inserted the block
         self.notify.post_block(data,block["time"])
         self.networknotify.post_stats(stats)
+        self.comparisonnotify.post_comparison(stats["last_block"])
         
     def insert_recent_blocks(self):
         for i in reversed(range(self.diff)):

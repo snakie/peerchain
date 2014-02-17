@@ -87,7 +87,8 @@ function add_block(block) {
 } 
 function add_comparison(stats) {
     var cells = compare_to_row(stats);
-    $("#review tr:eq(0)").after(cells.join(""));
+    console.log("adding comparison "+stats.last_block);
+    $("#review tr:eq(1)").after(cells.join(""));
     $("#review tr:last").remove();
 
 }
@@ -127,6 +128,8 @@ function message_received(text, id, channel) {
         if($("#text-loader").size() == 0) {
             clearInterval(loader);
         }
+    } else if(channel == 'delta') {
+        add_comparison($.parseJSON(text));
     } else if(channel == 'network') {
         add_stats(text);
     } else if(channel == 'disconnect') {
