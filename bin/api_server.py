@@ -307,7 +307,7 @@ if __name__ == '__main__':
     #cherrypy.quickstart(application)
     cherrypy.server.unsubscribe()
     server = cherrypy._cpserver.Server()
-    server.socket_host = "0.0.0.0"
+    server.socket_host = "127.0.0.1"
     server.socket_port = 8081
     server.thread_pool = 30
     server.subscribe()
