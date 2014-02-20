@@ -18,7 +18,18 @@
     copytruncate
     size 20M
     rotate 12
-    create 600 ***REMOVED*** ***REMOVED***
+    create 664 nginx ***REMOVED***
+}
+/var/log/nginx/*.log
+    missingok
+    notifempty
+    weekly
+    compress
+    delaycompress
+    copytruncate
+    size 20M
+    rotate 12
+    create 644 root root
 }
 
     
