@@ -40,3 +40,8 @@
         font-size: 75%;
         margin: 0px 0px 0px 0px;
       }
+      #ad {
+        width: 468px;
+        margin-left: auto;
+        margin-right: auto;
+      }
