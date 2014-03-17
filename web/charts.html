@@ -4,6 +4,7 @@
 <script src="/js/exporting.js"></script>
 
 <div id="container" style="height: 400px; min-width: 310px">Loading Inflation Rate Data...</div>
+<div class="footnote text-right">inflation values calculated over previous 2016 blocks</div>
 <div id="container2" style="height: 400px; min-width: 310px">Loading Difficulty Data...</div>
 <div id="container3" style="height: 400px; min-width: 310px">Loading Money Supply...</div>
 <script>
@@ -14,7 +15,7 @@ jQuery(document).ready(function() {
     var chart2;
     var chart3;
     $.getJSON('/api/blocks/count', function(bc) {
-        console.log(bc);
+        //console.log(bc);
         $.getJSON('/api/series/inflation_rate/'+bc, function(data) {
             $('#container').empty();
             chart1 = new Highcharts.StockChart({
