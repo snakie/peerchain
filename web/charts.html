@@ -1,0 +1,143 @@
+<div class="container">
+<script type="text/javascript" src="/js/jquery-1.10.2.min.js"></script>
+<script src="http://code.highcharts.com/stock/highstock.js"></script>
+<script src="http://code.highcharts.com/stock/modules/exporting.js"></script>
+
+<div id="container" style="height: 400px; min-width: 310px">Loading Inflation Rate Data...</div>
+<div id="container2" style="height: 400px; min-width: 310px">Loading Difficulty Data...</div>
+<div id="container3" style="height: 400px; min-width: 310px">Loading Money Supply...</div>
+<script>
+jQuery(document).ready(function() {
+    $("#chartnav").addClass("active");
+
+    var chart1;
+    var chart2;
+    var chart3;
+    $.getJSON('/api/blocks/count', function(bc) {
+        console.log(bc);
+        $.getJSON('/api/series/inflation_rate/'+bc, function(data) {
+            $('#container').empty();
+            chart1 = new Highcharts.StockChart({
+                chart: {
+                    renderTo: 'container',
+                    defaultSeriesType: 'line',
+                    zoomType: 'x'
+                },
+                rangeSelector : {
+                    selected : 1,
+                    inputEnabled: $('#container').width() > 480
+                },
+                title : {
+                    text : 'Peercoin Inflation Rate'
+                },
+                xAxis: {
+                    events: {
+                        afterSetExtremes:function(event) {
+                            var xMin = event.min;
+                            var xMax = event.max;
+                            var c2 = chart2.xAxis[0].getExtremes();
+                            if(c2.min != xMin || c2.max != xMax) {
+                                chart2.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                            var c3 = chart3.xAxis[0].getExtremes();
+                            if(c3.min != xMin || c3.max != xMax) {
+                                chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                        }
+                    }
+                },
+                series : [{
+                    name : '% Inflation Rate',
+                    data : data,
+                    tooltip: {
+                        valueDecimals: 2
+                    }
+                }]
+            });
+        });
+        $.getJSON('/api/series/diff/'+bc, function(data) {
+            $('#container2').empty();
+            chart2 = new Highcharts.StockChart({
+                chart: {
+                    renderTo: 'container2',
+                    defaultSeriesType: 'line',
+                    zoomType: 'x'
+                },
+                rangeSelector : {
+                    selected : 1,
+                    inputEnabled: $('#container2').width() > 480
+                },
+                title : {
+                    text : 'Peercoin POW Difficulty'
+                },
+                xAxis: {
+                    events: {
+                        afterSetExtremes:function(event) {
+                            var xMin = event.min;
+                            var xMax = event.max;
+                            var c1 = chart2.xAxis[0].getExtremes();
+                            if(c1.min != xMin || c1.max != xMax) {
+                                chart1.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                            var c3 = chart3.xAxis[0].getExtremes();
+                            if(c3.min != xMin || c3.max != xMax) {
+                                chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                        }
+                    }
+                },
+                series : [{
+                    name : 'Difficulty',
+                    data : data,
+                    tooltip: {
+                        valueDecimals: 0
+                    }
+                }]
+            });
+        });
+        $.getJSON('/api/series/money_supply/'+bc, function(data) {
+            $('#container3').empty();
+            chart3 = new Highcharts.StockChart({
+                chart: {
+                    renderTo: 'container3',
+                    defaultSeriesType: 'line',
+                    zoomType: 'x'
+                },
+                rangeSelector : {
+                    selected : 1,
+                    inputEnabled: $('#container3').width() > 480
+                },
+                title : {
+                    text : 'Peercoin Money Supply'
+                },
+                xAxis: {
+                    events: {
+                        afterSetExtremes:function(event) {
+                            var xMin = event.min;
+                            var xMax = event.max;
+                            var c2 = chart2.xAxis[0].getExtremes();
+                            if(c2.min != xMin || c2.max != xMax) {
+                                chart2.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                            var c1 = chart1.xAxis[0].getExtremes();
+                            if(c1.min != xMin || c1.max != xMax) {
+                                chart1.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                        }
+                    }
+                },
+                series : [{
+                    name : 'Money Supply',
+                    data : data,
+                    tooltip: {
+                        valueDecimals: 2
+                    }
+                }]
+            });
+        });
+    });
+
+});
+
+</script>
+</div>
