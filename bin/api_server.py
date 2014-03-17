@@ -84,6 +84,21 @@ class Blockchain(object):
         if pretty:
             return self.stats_to_json(stats)
         return stats
+    def get_series_stats(self,type,id):
+        if type == 'diff': #diff is in the blocks table
+            qstr = "SELECT time, pos, diff from blocks where id=%(id)s"
+        else:
+            qstr = "SELECT time, "+type+" from stats where last_block=%(id)s"
+        query = SimpleStatement(qstr)
+        future = self.session.execute_async(query, dict(id=id))
+        try:
+            rows = future.result()
+        except Exception as e:
+            return str(e)
+        if len(rows) == 0:
+            return "stats not found"
+        stats = rows[0]
+        return stats
     def get_block(self,block_id,tojson=True):
         try:
             id = int(block_id)
@@ -120,13 +135,16 @@ class Blocks(object):
         self.blockchain = blockchain
     def GET (self, id=None):
         if id == None:
+            cherrypy.response.status = 500
             return "Add a block number or the keyword last to the url: blocks/86754"
         try:
             id = int(id)
         except ValueError:
+            cherrypy.response.status = 500
             return "block id must be a number"
         if id < 10000000:
             return self.blockchain.get_block(id)
+        cherrypy.response.status = 500
         return "block id too large"
 
 class LastBlock(object):
@@ -141,8 +159,10 @@ class LastBlock(object):
         try:
             count = int(count)
         except ValueError:
+            cherrypy.response.status = 500
             return "count must be a number"
         if count > 10:
+            cherrypy.response.status = 500
             return "count cannot be greater then 10"
         last_id = self.blockchain.get_block_count() - 1
         data = { 'last' : last_id }
@@ -163,9 +183,11 @@ class Stats(object):
         try:
             id = int(id)
         except ValueError:
+            cherrypy.response.status = 500
             return "block height must be a number"
         if id < 10000000:
             return json.dumps(self.blockchain.get_stats(id))
+        cherrypy.response.status = 500
         return "block height too large"
 
 class CompareLastStats(object):
@@ -176,9 +198,11 @@ class CompareLastStats(object):
         try:
             delta = int(delta)
         except ValueError:
+            cherrypy.response.status = 500
             return "delta must be a number"
         last = self.blockchain.get_block_count() - 1
         if delta > last:
+            cherrypy.response.status = 500
             return "delta must be less then total block height"
         first_stats = self.blockchain.get_stats(last,False)
         second_stats = self.blockchain.get_stats(last-delta,False)
@@ -193,8 +217,10 @@ class CompareDeltaStats(object):
             first = int(first)
             delta = int(delta)
         except ValueError:
+            cherrypy.response.status = 500
             return "block id and delta must be numbers"
         if delta > first:
+            cherrypy.response.status = 500
             return "delta must be less then total block height"
         first_stats = self.blockchain.get_stats(first,False)
         second_stats = self.blockchain.get_stats(first-delta,False)
@@ -209,12 +235,70 @@ class CompareStats(object):
             first = int(first)
             second = int(second)
         except ValueError:
+            cherrypy.response.status = 500
             return "first and second block ids must be numbers"
         if second > first:
+            cherrypy.response.status = 500
             return "first id must be greater then second id"
         first_stats = self.blockchain.get_stats(first,False)
         second_stats = self.blockchain.get_stats(second,False)
         return blockchain.compare_stats(first_stats,second_stats)
+        
+
+class DataSeries(object):
+    exposed = True
+    def __init__(self,blockchain):
+        self.blockchain = blockchain
+    def GET (self, type, start):
+        if type != 'diff' and type != 'inflation_rate' and type != 'money_supply':
+            cherrypy.response.status = 500
+            return "type must be diff or inflation_rate"
+        try:
+            start = int(start)
+        except ValueError:
+            cherrypy.response.status = 500
+            return "start must be a number"
+        block_count = self.blockchain.get_block_count()
+        if(start > block_count):
+            # avoid caching a bad response
+            cherrypy.response.status = 500
+            return "start must be less then block count"
+        current_block = start;
+        resolution = 144;
+        limit = 0; # how many blocks before start to stop at
+        results = list()
+        calc_inflation = 0
+        if(type == 'inflation_rate'):
+            type = 'money_supply'
+            calc_inflation = 1
+            limit = 2016
+        while current_block - limit > 0:
+            curr = self.blockchain.get_series_stats(type,current_block)
+            curr = curr._asdict()
+            if type == 'diff':
+                while curr['pos']:
+                    current_block = current_block - 1;
+                    curr = self.blockchain.get_series_stats(type,current_block)
+                    curr = curr._asdict()
+            time = 1000*int(curr['time'].strftime("%s"))
+            if(calc_inflation):
+                prev = self.blockchain.get_series_stats(type,current_block-2016)
+                prev = prev._asdict()
+                dur = curr['time'] - prev['time']
+                inf_rate = (curr["money_supply"] - prev["money_supply"]) / 1e6
+                total_seconds = dur.days * 86400 + dur.seconds
+                times_in_year = 31536000 / float(total_seconds)
+                inf_rate = 100*inf_rate * times_in_year / (curr['money_supply']/1e6)
+                templist = [time, inf_rate]
+            else:
+                if(type == 'money_supply'):
+                    templist = [time, curr[type]/1e6]
+                else:    
+                    templist = [time, curr[type]]
+            results.insert(0,templist)
+            current_block = current_block - resolution;
+        #print results
+        return json.dumps(results)
 
 class LastStats(object):
     exposed = True
@@ -228,8 +312,10 @@ class LastStats(object):
         try:
             count = int(count)
         except ValueError:
+            cherrypy.response.status = 500
             return "count must be a number"
         if count > 10:
+            cherrypy.response.status = 500
             return "count cannot be greater then 10"
         last_id = self.blockchain.get_block_count() - 1
         data = { 'last' : last_id }
@@ -273,6 +359,7 @@ class Index(object):
         </pre>""";
         return usage
     def default(self):
+        cherrypy.response.status = 404
         return "method not implemented"
 
 def error_404(status,message,traceback,version):
@@ -291,6 +378,8 @@ api.network.last = LastStats(blockchain)
 api.compare = CompareStats(blockchain)
 api.compare.delta = CompareDeltaStats(blockchain)
 api.compare.last = CompareLastStats(blockchain)
+
+api.series = DataSeries(blockchain)
 
 config = {'/':
     {
