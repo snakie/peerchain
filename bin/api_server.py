@@ -15,11 +15,24 @@ if __name__ != '__main__':
         cherrypy.engine.start(blocking=False)
         atexit.register(cherrypy.engine.stop)
 
+database=None
+database_path='/app/var/peerchain.db'
+database=threading.local()
+
+def connect(thread_index):
+    global database,database_path
+    #print "connect called thread: "+str(thread_index)
+    database.conn = sqlite3.connect(database_path)
+    database.conn.row_factory = sqlite3.Row
+
 class Blockchain(object):
     def __init__(self,file='/app/var/peerchain.db'):
-        self.conn = sqlite3.connect(file, check_same_thread=False);
-        self.conn.row_factory = sqlite3.Row
-        self.cursor = self.conn.cursor();
+        #self.conn = sqlite3.connect(file, check_same_thread=False);
+        #self.conn.row_factory = sqlite3.Row
+        #self.cursor = self.conn.cursor();
+        #global database
+        #self.local = threading.local()
+        #self.local.cursor = database.conn.cursor()
         self.block_query = "SELECT * from blocks where id=?"
         self.stat_query = "SELECT * from stats where last_block=?"
         self.last_query = "SELECT max(id) from blocks"
@@ -61,10 +74,12 @@ class Blockchain(object):
         ret['pos_blocks'] = first['POS_blocks'] - second['POS_blocks']
         ret['pow_blocks'] = first['POW_blocks'] - second['POW_blocks']
         ret['transactions'] = first['transactions'] - second['transactions']
-        ret['duration'] = first['time'] - second['time']
+        total_seconds = (first['time'] - second['time']) / 1e3
+        ret['duration'] = datetime.timedelta(0,total_seconds)
+        #ret['duration'] = first['time'] - second['time']
         ret["inflation_rate"] = (first["money_supply"] - second["money_supply"]) / 1e6
         ret["money_supply_delta"] = format(ret["inflation_rate"],'.6f')
-        total_seconds = ret['duration'] / 1e3
+        #total_seconds = ret['duration'] / 1e3
         times_in_year = 31536000 / float(total_seconds)
         ret['inflation_rate'] = format(100*ret['inflation_rate'] * times_in_year / (first['money_supply']/1e6),'.2f')
         ret['duration'] = ret['duration'].__str__()
@@ -75,8 +90,10 @@ class Blockchain(object):
         #print first
         return json.dumps(ret)
     def get_stats(self,id,pretty=True):
-        query = self.cursor.execute(self.stat_query,(id,))
-        stats = self.cursor.fetchone()
+        global database
+        cursor = database.conn.cursor()
+        query = cursor.execute(self.stat_query,(id,))
+        stats = cursor.fetchone()
         if stats is None:
             print "stats "+id+" not found"
             return "stats not found"
@@ -89,8 +106,10 @@ class Blockchain(object):
             qstr = "SELECT time, pos, diff from blocks where id=?"
         else:
             qstr = "SELECT time, "+type+" from stats where last_block=?"
-        query = self.cursor.execute(qstr,(id,));    
-        stats = self.cursor.fetchone();
+        global database
+        cursor = database.conn.cursor()
+        query = cursor.execute(qstr,(id,));    
+        stats = cursor.fetchone();
         if stats is None:
             print "stats "+str(id)+" not found"
             return "stats not found"
@@ -101,8 +120,10 @@ class Blockchain(object):
             id = int(block_id)
         except ValueError:
             return "block id must be a number"
-        query = self.cursor.execute(self.block_query, (id,))
-        block = self.cursor.fetchone()
+        global database
+        cursor = database.conn.cursor()
+        query = cursor.execute(self.block_query, (id,))
+        block = cursor.fetchone()
         if block is None:
             return "block not found"
         block = self.rowtodict(block)
@@ -111,8 +132,10 @@ class Blockchain(object):
         return self.block_to_json(block)
             
     def get_block_count(self):
-        query = self.cursor.execute(self.last_query)
-        row = self.cursor.fetchone()
+        global database
+        cursor = database.conn.cursor()
+        query = cursor.execute(self.last_query)
+        row = cursor.fetchone()
         if row is None:
             return "failed to fetch last block count"
         value = row[0]
@@ -395,6 +418,7 @@ if __name__ == '__main__':
     server.socket_port = 8081
     server.thread_pool = 30
     server.subscribe()
+    cherrypy.engine.subscribe('start_thread', connect)
     cherrypy.engine.start() 
     cherrypy.engine.block()
 
