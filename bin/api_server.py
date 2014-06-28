@@ -6,8 +6,8 @@ sys.stdout = sys.stderr
 import atexit
 import threading
 import cherrypy, json
-from cassandra.cluster import Cluster
-from cassandra.query import SimpleStatement
+import datetime
+import sqlite3
 
 if __name__ != '__main__':
     cherrypy.config.update({'environment':'embedded'})
@@ -16,53 +16,55 @@ if __name__ != '__main__':
         atexit.register(cherrypy.engine.stop)
 
 class Blockchain(object):
-    def __init__(self,host='127.0.0.1',keyspace='peerchain'):
-        self.cluster = Cluster([host]) 
-        self.session = self.cluster.connect()
-        self.session.set_keyspace(keyspace)
-        self.block_query = SimpleStatement("SELECT * from blocks where id=%(id)s")
-        self.stat_query = SimpleStatement("SELECT * from stats where last_block=%(id)s")
-        self.last_query = SimpleStatement("SELECT value from counters where name='blocks'")
-    def block_to_json(self,blocktuple):
-        block = blocktuple._asdict()
+    def __init__(self,file='/app/var/peerchain.db'):
+        self.conn = sqlite3.connect(file, check_same_thread=False);
+        self.conn.row_factory = sqlite3.Row
+        self.cursor = self.conn.cursor();
+        self.block_query = "SELECT * from blocks where id=?"
+        self.stat_query = "SELECT * from stats where last_block=?"
+        self.last_query = "SELECT max(id) from blocks"
+    def block_to_json(self,block):
         block["staked"] = format(block["staked"] / 1e6,'.6f')
         block["diff"] = format(block["diff"],'.8f')
         block["reward"] = format(block["reward"] / 1e6,'.6f')
         block["sent"] = format(block["sent"] / 1e6,'.6f')
+        block["POS"] = block["POS"].lower()
         block["received"] = format(block["received"] / 1e6,'.6f')
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
         block["stakeage"] = format(block["stakeage"],'.2f')
-        block["time"] = block["time"].strftime("%Y-%m-%d %H:%M:%S+0000")
+        block["time"] = datetime.datetime.utcfromtimestamp(block["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
         return block
-    def stats_to_json(self,stattuple):
-        stats = stattuple._asdict()
+    def stats_to_json(self,stats):
         stats["mined_coins"] = format(stats["mined_coins"] / 1e6,'.6f')
         stats["minted_coins"] = format(stats["minted_coins"] / 1e6,'.6f')
         stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
-        stats["time"] = stats["time"].strftime("%Y-%m-%d %H:%M:%S+0000")
+        stats["time"] = datetime.datetime.utcfromtimestamp(stats["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
         return stats
+    def rowtodict(self,tuple):
+        dict = {}
+        for key in tuple.keys():
+            dict[key] = tuple[key]
+        return dict
     #def compare_stats(self,firsttuple,secondtuple):
-    def compare_stats(self,firsttuple,secondtuple):
-        if firsttuple == 'stats not found':
+    def compare_stats(self,first,second):
+        if first == 'stats not found':
             return "error, unable to find stats for first id"
-        if secondtuple == 'stats not found':
+        if second == 'stats not found':
             return "error, unable to find stats for second id"
         #print firsttuple
         #print secondtuple
-        first = firsttuple._asdict()
-        second = secondtuple._asdict()
         ret = {}
         ret['last_block'] = first['last_block']
         ret['first_block'] = second['last_block']
         ret['block_delta'] = first['last_block'] - second['last_block']
-        ret['pos_blocks'] = first['pos_blocks'] - second['pos_blocks']
-        ret['pow_blocks'] = first['pow_blocks'] - second['pow_blocks']
+        ret['pos_blocks'] = first['POS_blocks'] - second['POS_blocks']
+        ret['pow_blocks'] = first['POW_blocks'] - second['POW_blocks']
         ret['transactions'] = first['transactions'] - second['transactions']
         ret['duration'] = first['time'] - second['time']
         ret["inflation_rate"] = (first["money_supply"] - second["money_supply"]) / 1e6
         ret["money_supply_delta"] = format(ret["inflation_rate"],'.6f')
-        total_seconds = ret['duration'].days * 86400 + ret['duration'].seconds
+        total_seconds = ret['duration'] / 1e3
         times_in_year = 31536000 / float(total_seconds)
         ret['inflation_rate'] = format(100*ret['inflation_rate'] * times_in_year / (first['money_supply']/1e6),'.2f')
         ret['duration'] = ret['duration'].__str__()
@@ -73,58 +75,47 @@ class Blockchain(object):
         #print first
         return json.dumps(ret)
     def get_stats(self,id,pretty=True):
-        future = self.session.execute_async(self.stat_query, dict(id=id))
-        try:
-            rows = future.result()
-        except Exception as e:
-            return str(e)
-        if len(rows) == 0:
+        query = self.cursor.execute(self.stat_query,(id,))
+        stats = self.cursor.fetchone()
+        if stats is None:
+            print "stats "+id+" not found"
             return "stats not found"
-        stats = rows[0]
+        stats = self.rowtodict(stats)
         if pretty:
             return self.stats_to_json(stats)
         return stats
     def get_series_stats(self,type,id):
         if type == 'diff': #diff is in the blocks table
-            qstr = "SELECT time, pos, diff from blocks where id=%(id)s"
+            qstr = "SELECT time, pos, diff from blocks where id=?"
         else:
-            qstr = "SELECT time, "+type+" from stats where last_block=%(id)s"
-        query = SimpleStatement(qstr)
-        future = self.session.execute_async(query, dict(id=id))
-        try:
-            rows = future.result()
-        except Exception as e:
-            return str(e)
-        if len(rows) == 0:
+            qstr = "SELECT time, "+type+" from stats where last_block=?"
+        query = self.cursor.execute(qstr,(id,));    
+        stats = self.cursor.fetchone();
+        if stats is None:
+            print "stats "+str(id)+" not found"
             return "stats not found"
-        stats = rows[0]
+        stats = self.rowtodict(stats)
         return stats
     def get_block(self,block_id,tojson=True):
         try:
             id = int(block_id)
         except ValueError:
             return "block id must be a number"
-        future = self.session.execute_async(self.block_query, dict(id=id))
-        try:
-            rows = future.result()
-        except Exception as e:
-            return str(e)
-        if len(rows) == 0:
+        query = self.cursor.execute(self.block_query, (id,))
+        block = self.cursor.fetchone()
+        if block is None:
             return "block not found"
-        block = rows[0]
+        block = self.rowtodict(block)
         if tojson:
             return json.dumps(self.block_to_json(block))
         return self.block_to_json(block)
             
     def get_block_count(self):
-        future = self.session.execute_async(self.last_query)
-        try:
-            rows = future.result()
-        except Exception as e:
-            return str(e)
-        if len(rows) == 0:
+        query = self.cursor.execute(self.last_query)
+        row = self.cursor.fetchone()
+        if row is None:
             return "failed to fetch last block count"
-        value = rows[0][0]
+        value = row[0]
         return value
 
 
@@ -273,20 +264,24 @@ class DataSeries(object):
             calc_inflation = 1
             limit = 2016
         while current_block - limit > 0:
+            #print "processing "+str(current_block)
             curr = self.blockchain.get_series_stats(type,current_block)
-            curr = curr._asdict()
+            if(not isinstance(curr,dict)):
+                return curr
             if type == 'diff':
-                while curr['pos']:
+                while curr['POS'] == "true":
+                    print "decrementing to find POS: "+str(current_block)
                     current_block = current_block - 1;
                     curr = self.blockchain.get_series_stats(type,current_block)
-                    curr = curr._asdict()
-            time = 1000*int(curr['time'].strftime("%s"))
+                    if(not isinstance(curr,dict)):
+                        return curr
+            time = curr['time']
+            #print time
             if(calc_inflation):
                 prev = self.blockchain.get_series_stats(type,current_block-2016)
-                prev = prev._asdict()
                 dur = curr['time'] - prev['time']
                 inf_rate = (curr["money_supply"] - prev["money_supply"]) / 1e6
-                total_seconds = dur.days * 86400 + dur.seconds
+                total_seconds = dur / 1e3
                 times_in_year = 31536000 / float(total_seconds)
                 inf_rate = 100*inf_rate * times_in_year / (curr['money_supply']/1e6)
                 templist = [time, inf_rate]
@@ -388,7 +383,7 @@ config = {'/':
 }
 application = cherrypy.tree.mount(api,"/api",config)
 cherrypy.config.update({'error_page.404': error_404, 
-                        'environment':'production',
+                        #'environment':'production',
                         'log.error_file': '/app/logs/api_server.error.log',
                         'log.access_file': '/app/logs/api_server.access.log'})
 
