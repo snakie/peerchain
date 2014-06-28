@@ -8,14 +8,14 @@ function block_to_row(block) {
        cells.push("<tr>");
        cells.push("<td><a href=\"/api/blocks/"+block.id+"\">"+block.id+"</td>");
        cells.push("<td><abbr class=\"timeago\" title=\""+block.time+"\">"+block.time+"</abbr></td>");
-       cells.push("<td>"+(block.pos == true ? "POS" : "POW")+"</td>");
-       cells.push("<td>"+(block.pos == true ? parseFloat(block.diff).toFixed(2) : (parseFloat(block.diff) / 1e6).toFixed(2) + 'M')+"</td>");
+       cells.push("<td>"+(block.POS == "true" ? "POS" : "POW")+"</td>");
+       cells.push("<td>"+(block.POS == "true" ? parseFloat(block.diff).toFixed(2) : (parseFloat(block.diff) / 1e6).toFixed(2) + 'M')+"</td>");
        cells.push("<td>"+parseFloat(block.reward).toFixed(2)+"</td>");
        cells.push("<td>"+block.txcount+"</td>");
        cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
-       cells.push("<td>"+(block.pos == true ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
-       cells.push("<td>"+(block.pos == true ? parseFloat(block.stakeage).toFixed(2) : '-')+"</td>");
+       cells.push("<td>"+(block.POS == "true" ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
+       cells.push("<td>"+(block.POS == "true" ? parseFloat(block.stakeage).toFixed(2) : '-')+"</td>");
        cells.push("</tr>");
        return cells;
 }
@@ -24,8 +24,8 @@ function stats_to_row(stats) {
        cells.push("<tr>");
        cells.push("<td><a href=\"/api/network/"+stats.last_block+"\">"+stats.last_block+"</td>");
        cells.push("<td><abbr class=\"timeago\" title=\""+stats.time+"\">"+stats.time+"</abbr></td>");
-       cells.push("<td>"+stats.pow_blocks+"</td>");
-       cells.push("<td>"+stats.pos_blocks+"</td>");
+       cells.push("<td>"+stats.POW_blocks+"</td>");
+       cells.push("<td>"+stats.POS_blocks+"</td>");
        cells.push("<td>"+parseFloat(stats.mined_coins).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(stats.minted_coins).toFixed(2)+"</td>");
        cells.push("<td>"+parseFloat(stats.destroyed_fees).toFixed(2)+"</td>");
