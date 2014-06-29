@@ -292,7 +292,8 @@ class DataSeries(object):
             if(not isinstance(curr,dict)):
                 return curr
             if type == 'diff':
-                while curr['POS'] == "true":
+                print curr['POS']
+                while curr['POS'] == "TRUE":
                     print "decrementing to find POS: "+str(current_block)
                     current_block = current_block - 1;
                     curr = self.blockchain.get_series_stats(type,current_block)
