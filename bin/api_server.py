@@ -288,20 +288,20 @@ class DataSeries(object):
             limit = 2016
         querytype = type
         if(type == 'pow_diff'):
-            POS_compare = "FALSE"
+            POS_compare = "TRUE"
             querytype = 'diff'
         elif(type == 'pos_diff'):
-            POS_compare = "TRUE"
+            POS_compare = "FALSE"
             querytype = 'diff'
         while current_block - limit > 0:
             #print "processing "+str(current_block)
             curr = self.blockchain.get_series_stats(querytype,current_block)
             if(not isinstance(curr,dict)):
                 return curr
-            if type == 'diff':
+            if querytype == 'diff':
                 #print curr['POS']
                 while curr['POS'] == POS_compare:
-                    #print "decrementing to find POS: "+str(current_block)
+                    #print "decrementing to find POS = "+POS_compare+": "+str(current_block)
                     current_block = current_block - 1;
                     curr = self.blockchain.get_series_stats(querytype,current_block)
                     if(not isinstance(curr,dict)):
