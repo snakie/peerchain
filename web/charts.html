@@ -5,8 +5,9 @@
 
 <div id="container" style="height: 400px; min-width: 310px">Loading Inflation Rate Data...</div>
 <div class="footnote text-right">inflation values calculated over previous 2016 blocks</div>
-<div id="container2" style="height: 400px; min-width: 310px">Loading Difficulty Data...</div>
-<div id="container3" style="height: 400px; min-width: 310px">Loading Money Supply...</div>
+<div id="container2" style="height: 400px; min-width: 310px">Loading POS Difficulty Data...</div>
+<div id="container3" style="height: 400px; min-width: 310px">Loading POW Difficulty Data...</div>
+<div id="container4" style="height: 400px; min-width: 310px">Loading Money Supply...</div>
 <script>
 jQuery(document).ready(function() {
     $("#chartnav").addClass("active");
@@ -14,6 +15,7 @@ jQuery(document).ready(function() {
     var chart1;
     var chart2;
     var chart3;
+    var chart4;
     $.getJSON('/api/blocks/count', function(bc) {
         //console.log(bc);
         $.getJSON('/api/series/inflation_rate/'+bc, function(data) {
@@ -56,11 +58,51 @@ jQuery(document).ready(function() {
                 }]
             });
         });
-        $.getJSON('/api/series/diff/'+bc, function(data) {
+        $.getJSON('/api/series/pos_diff/'+bc, function(data) {
             $('#container2').empty();
             chart2 = new Highcharts.StockChart({
                 chart: {
                     renderTo: 'container2',
+                    defaultSeriesType: 'line',
+                    zoomType: 'x'
+                },
+                rangeSelector : {
+                    selected : 1,
+                    inputEnabled: $('#container2').width() > 480
+                },
+                title : {
+                    text : 'Peercoin POS Difficulty'
+                },
+                xAxis: {
+                    events: {
+                        afterSetExtremes:function(event) {
+                            var xMin = event.min;
+                            var xMax = event.max;
+                            var c1 = chart2.xAxis[0].getExtremes();
+                            if(c1.min != xMin || c1.max != xMax) {
+                                chart1.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                            var c3 = chart3.xAxis[0].getExtremes();
+                            if(c3.min != xMin || c3.max != xMax) {
+                                chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                        }
+                    }
+                },
+                series : [{
+                    name : 'Difficulty',
+                    data : data,
+                    tooltip: {
+                        valueDecimals: 0
+                    }
+                }]
+            });
+        });
+        $.getJSON('/api/series/pow_diff/'+bc, function(data) {
+            $('#container3').empty();
+            chart3 = new Highcharts.StockChart({
+                chart: {
+                    renderTo: 'container3',
                     defaultSeriesType: 'line',
                     zoomType: 'x'
                 },
@@ -97,10 +139,10 @@ jQuery(document).ready(function() {
             });
         });
         $.getJSON('/api/series/money_supply/'+bc, function(data) {
-            $('#container3').empty();
-            chart3 = new Highcharts.StockChart({
+            $('#container4').empty();
+            chart4 = new Highcharts.StockChart({
                 chart: {
-                    renderTo: 'container3',
+                    renderTo: 'container4',
                     defaultSeriesType: 'line',
                     zoomType: 'x'
                 },
