@@ -15,11 +15,12 @@ class Notify(object):
         self.host = host
         self.port = port
         self.uri = uri
-    def stats_to_json(self,stats):
+    def stats_to_json(self,stats,time):
         stats["mined_coins"] = format(stats["mined_coins"] / 1e6,'.6f')
         stats["minted_coins"] = format(stats["minted_coins"] / 1e6,'.6f')
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
         stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
+        stats["time"] = time
         return stats
     def block_to_json(self,block,time):
         block["staked"] = format(block["staked"] / 1e6,'.6f')
@@ -48,8 +49,8 @@ class Notify(object):
     def post_tx(self,data):
         data = data.transaction[0]
         self.post(data)
-    def post_stats(self,data):
-        jsondata = self.stats_to_json(data)
+    def post_stats(self,data,time):
+        jsondata = self.stats_to_json(data,time)
         self.post(jsondata)
     def post_block(self,data,time):
         jsondata = self.block_to_json(data,time)
@@ -352,7 +353,7 @@ class Syncer(object):
         # even though I may not have inserted the block
         data['POS'] = data['POS'].lower()
         self.notify.post_block(data,block["time"])
-        self.networknotify.post_stats(stats)
+        self.networknotify.post_stats(stats,block["time"])
         self.comparisonnotify.post_comparison(stats["last_block"])
         
     def insert_recent_blocks(self):
