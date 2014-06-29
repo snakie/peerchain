@@ -46,7 +46,7 @@ class Blockchain(object):
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
         block["stakeage"] = format(block["stakeage"],'.2f')
         block["time"] = datetime.datetime.utcfromtimestamp(block["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
-        print block["hashPrevBlock"]
+        #print block["hashPrevBlock"]
         return block
     def stats_to_json(self,stats):
         stats["mined_coins"] = format(stats["mined_coins"] / 1e6,'.6f')
