@@ -4,8 +4,7 @@ import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json, 
 from dateutil.tz import tzlocal
 from decimal import Decimal
 from optparse import OptionParser
-from cassandra.cluster import Cluster
-from cassandra.query import SimpleStatement
+import sqlite3
 sys.path.append("/app/lib/bitcointools")
 from deserialize import *
 from BCDataStream import *
@@ -133,70 +132,55 @@ class Peercoin(object):
         return data    
         
 class Database(object):
-    def __init__(self,host="127.0.0.1",keyspace="peerchain"):
-        self.cluster = Cluster([host])
-        self.session = self.cluster.connect()
-        self.session.set_keyspace(keyspace)
-        self.last_query = SimpleStatement("SELECT value from counters where name='blocks'")
-        self.blockhash_query = SimpleStatement("SELECT hash from blocks where id=%(id)s")
-        self.last_stats_query = SimpleStatement("SELECT * from stats where last_block=%(id)s")
-        self.increment_query = SimpleStatement("UPDATE counters SET value = value+1 where name = 'blocks'")
-        self.decrement_query = SimpleStatement("UPDATE counters SET value = value-1 where name = 'blocks'")
-        self.delete_query = SimpleStatement("delete from blocks where id=%(id)s")
-        self.delete_stats_query = SimpleStatement("delete from stats where last_block=%(id)s")
-        self.stats_query = SimpleStatement("INSERT INTO stats (last_block,destroyed_fees,mined_coins,minted_coins,money_supply,pos_blocks,pow_blocks,time,transactions) VALUES (%(last_block)s,%(destroyed_fees)s,%(mined_coins)s,%(minted_coins)s,%(money_supply)s,%(pos_blocks)s,%(pow_blocks)s,%(time)s,%(transactions)s)")
-        self.block_query = SimpleStatement("INSERT INTO blocks (id,chain,stakeage,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (%(id)s,%(chain)s,%(stakeage)s,%(pos)s,%(hash)s,%(hashprevblock)s,%(hashmerkleroot)s,%(time)s,%(bits)s,%(diff)s,%(nonce)s,%(txcount)s,%(reward)s,%(staked)s,%(sent)s,%(received)s,%(destroyed)s)")
+    def __init__(self,path='/app/var/peerchain.db'):
+        self.conn = sqlite3.connect(path)
+        self.conn.row_factory = sqlite3.Row
+        self.last_query = "SELECT max(id) from blocks"
+        self.blockhash_query = "SELECT hash from blocks where id=?"
+        self.last_stats_query = "SELECT * from stats where last_block=?"
+        self.delete_query = "delete from blocks where id=?"
+        self.delete_stats_query = "delete from stats where last_block=?"
+        self.stats_query = "INSERT INTO stats (last_block,destroyed_fees,mined_coins,minted_coins,money_supply,pos_blocks,pow_blocks,time,transactions) VALUES (?,?,?,?,?,?,?,?,?)"
+        self.block_query = "INSERT INTO blocks (id,chain,stakeage,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     def shutdown(self):
-        self.cluster.shutdown()
+        self.conn.close()
     def block_count(self):
-          future = self.session.execute_async(self.last_query)
-          try:
-              rows = future.result()
-          except Exception as e:
-              return str(e)
-          if len(rows) == 0:
+          cursor = self.conn.cursor()
+          query = cursor.execute(self.last_query)
+          count = cursor.fetchone()
+          if count is None:
               return "failed to fetch last block count"
-          value = rows[0][0]
+          value = count[0]
           return int(value)
     def getblockhash(self,id):
-          future = self.session.execute_async(self.blockhash_query, dict(id=id))
-          rows = future.result()
-          #print rows
-          if len(rows) == 0:
+          cursor = self.conn.cursor()
+          query = cursor.execute(self.blockhash_query,(id,))
+          hash = cursor.fetchone()
+          if hash is None:
             return None
-          return rows[0][0]
+          return hash[0]
     def get_stats(self,id):
-          future = self.session.execute_async(self.last_stats_query,dict(id=id))
-          rows = future.result()
-          if rows:
-            return rows[0]._asdict()
-          return None
-    def decrement_counter(self):
-          future = self.session.execute_async(self.decrement_query)
-          rows = future.result()
+          cursor = self.conn.cursor()
+          query = cursor.execute(self.last_stats_query,(id,))
+          stats = cursor.fetchone()
+          if stats is None:
+            return None
+          return stats
     def delete_block(self,id):
-          future = self.session.execute_async(self.delete_query,dict(id=id))
-          rows = future.result()
-          future = self.session.execute_async(self.delete_stats_query,dict(id=id))
-          rows = future.result()
-          self.decrement_counter();
-    def increment_counter(self):
-          future = self.session.execute_async(self.increment_query)
-          #try:
-          rows = future.result()
-          #except Exception as e:
-          #    return str(e)
+          cursor = self.conn.cursor()
+          query = cursor.execute(self.delete_query,(id,))
+          query = cursor.execute(self.delete_stats_query,(id,))
+          cursor.commit()
     def insert_block(self,block,stats):
-        #print block
-        future = self.session.execute_async(self.block_query,block)
-        #try:
-        rows = future.result()
-        future = self.session.execute_async(self.stats_query,stats)
-        rows = future.result()
-        #except Exception as e:
-        #    return str(e)
-        #print block
-        self.increment_counter();
+          cursor = self.conn.cursor()
+          query = cursor.execute(self.block_query,(block["id"],block["chain"],block['stakeage'],
+            block['pos'],block['hash'],block['hashprevblock'],block['hashmerkleroot'],block['time'],
+            block['bits'],block['diff'],block['nonce'],block['txcount'],block['reward'],block['staked'],
+            block['sent'],block['received'],block['destroyed']))
+          query = cursor.execute(self.stats_query,(stats["last_block"],stats["destroyed_fees"],
+            stats["mined_coins"],stats["minted_coins"],stats["money_supply"],stats["POS_blocks"],
+            stats["POW_blocks"],stats["time"],stats["transactions"]))
+          cursor.commit()
 
 class Syncer(object):
     def __init__(self):
