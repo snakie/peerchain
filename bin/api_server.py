@@ -46,6 +46,7 @@ class Blockchain(object):
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
         block["stakeage"] = format(block["stakeage"],'.2f')
         block["time"] = datetime.datetime.utcfromtimestamp(block["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
+        print block["hashPrevBlock"]
         return block
     def stats_to_json(self,stats):
         stats["mined_coins"] = format(stats["mined_coins"] / 1e6,'.6f')
@@ -88,7 +89,7 @@ class Blockchain(object):
         ret["minted_coins"] = format((first["minted_coins"]-second["minted_coins"]) / 1e6,'.6f')
         ret["destroyed_fees"] = format((first["destroyed_fees"]-second["destroyed_fees"]) / 1e6,'.6f')
         #print first
-        return json.dumps(ret)
+        return ret
     def get_stats(self,id,pretty=True):
         global database
         cursor = database.conn.cursor()
@@ -115,7 +116,7 @@ class Blockchain(object):
             return "stats not found"
         stats = self.rowtodict(stats)
         return stats
-    def get_block(self,block_id,tojson=True):
+    def get_block(self,block_id,tojson=False):
         try:
             id = int(block_id)
         except ValueError:
@@ -148,6 +149,7 @@ class Blocks(object):
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, id=None):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         if id == None:
             cherrypy.response.status = 500
             return "Add a block number or the keyword last to the url: blocks/86754"
@@ -157,7 +159,7 @@ class Blocks(object):
             cherrypy.response.status = 500
             return "block id must be a number"
         if id < 10000000:
-            return self.blockchain.get_block(id)
+            return json.dumps(self.blockchain.get_block(id),indent=4,sort_keys=True)
         cherrypy.response.status = 500
         return "block id too large"
 
@@ -166,10 +168,11 @@ class LastBlock(object):
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, count=None):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         if count == None:
             count = 1
-            last_id = self.blockchain.get_block_count() - 1
-            return self.blockchain.get_block(last_id)
+            last_id = self.blockchain.get_block_count()
+            return json.dumps(self.blockchain.get_block(last_id),indent=4,sort_keys=True)
         try:
             count = int(count)
         except ValueError:
@@ -178,20 +181,22 @@ class LastBlock(object):
         if count > 10:
             cherrypy.response.status = 500
             return "count cannot be greater then 10"
-        last_id = self.blockchain.get_block_count() - 1
+        last_id = self.blockchain.get_block_count()
         data = { 'last' : last_id }
         blocks = []
         for c in range(count):
             curr = last_id-c
             blocks.append(self.blockchain.get_block(curr,False))
         data['blocks'] = blocks;
-        return json.dumps(data)
+        cherrypy.response.headers['Content-Type'] = "text/plain"
+        return json.dumps(data,indent=4,sort_keys=True)
 
 class Stats(object):
     exposed = True
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, id=None):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         if id == None:
             return "Add a block number to the url: network/86754"
         try:
@@ -200,7 +205,7 @@ class Stats(object):
             cherrypy.response.status = 500
             return "block height must be a number"
         if id < 10000000:
-            return json.dumps(self.blockchain.get_stats(id))
+            return json.dumps(self.blockchain.get_stats(id),indent=4,sort_keys=True)
         cherrypy.response.status = 500
         return "block height too large"
 
@@ -209,24 +214,26 @@ class CompareLastStats(object):
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, delta):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         try:
             delta = int(delta)
         except ValueError:
             cherrypy.response.status = 500
             return "delta must be a number"
-        last = self.blockchain.get_block_count() - 1
+        last = self.blockchain.get_block_count()
         if delta > last:
             cherrypy.response.status = 500
             return "delta must be less then total block height"
         first_stats = self.blockchain.get_stats(last,False)
         second_stats = self.blockchain.get_stats(last-delta,False)
-        return blockchain.compare_stats(first_stats,second_stats)
+        return json.dumps(blockchain.compare_stats(first_stats,second_stats),indent=4,sort_keys=True)
 
 class CompareDeltaStats(object):
     exposed = True
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, first, delta):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         try:
             first = int(first)
             delta = int(delta)
@@ -238,13 +245,14 @@ class CompareDeltaStats(object):
             return "delta must be less then total block height"
         first_stats = self.blockchain.get_stats(first,False)
         second_stats = self.blockchain.get_stats(first-delta,False)
-        return blockchain.compare_stats(first_stats,second_stats)
+        return json.dumps(blockchain.compare_stats(first_stats,second_stats),indent=4,sort_keys=True)
 
 class CompareStats(object):
     exposed = True
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, first, second):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         try:
             first = int(first)
             second = int(second)
@@ -256,7 +264,7 @@ class CompareStats(object):
             return "first id must be greater then second id"
         first_stats = self.blockchain.get_stats(first,False)
         second_stats = self.blockchain.get_stats(second,False)
-        return blockchain.compare_stats(first_stats,second_stats)
+        return json.dumps(blockchain.compare_stats(first_stats,second_stats),indent=4,sort_keys=True)
         
 
 class DataSeries(object):
@@ -264,6 +272,7 @@ class DataSeries(object):
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, type, start):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         if type != 'pow_diff' and type != 'pos_diff' and type != 'inflation_rate' and type != 'money_supply':
             cherrypy.response.status = 500
             return "type must be pow_diff, pos_diff, money_supply, or inflation_rate"
@@ -324,17 +333,18 @@ class DataSeries(object):
             results.insert(0,templist)
             current_block = current_block - resolution;
         #print results
-        return json.dumps(results)
+        return json.dumps(results,indent=4,sort_keys=True)
 
 class LastStats(object):
     exposed = True
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, count=None):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         if count == None:
             count = 1
-            id = self.blockchain.get_block_count() - 1
-            return json.dumps(self.blockchain.get_stats(id))
+            id = self.blockchain.get_block_count()
+            return json.dumps(self.blockchain.get_stats(id),indent=4,sort_keys=True)
         try:
             count = int(count)
         except ValueError:
@@ -343,46 +353,46 @@ class LastStats(object):
         if count > 10:
             cherrypy.response.status = 500
             return "count cannot be greater then 10"
-        last_id = self.blockchain.get_block_count() - 1
+        last_id = self.blockchain.get_block_count()
         data = { 'last' : last_id }
         network = []
         for c in range(count):
             curr = last_id-c
             network.append(self.blockchain.get_stats(curr))
         data['data'] = network;
-        return json.dumps(data);
+        return json.dumps(data,indent=4,sort_keys=True);
 
 class BlockCount(object):
     exposed = True
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self):
-        return json.dumps(self.blockchain.get_block_count() - 1)
+        return json.dumps(self.blockchain.get_block_count(),indent=4,sort_keys=True)
 
 class Index(object):
     exposed = True
     def GET(self):
-        usage = """<pre>
+        usage = """
   peercoin blockchain json api
     by snakie (snakie at yahoo.com)
-    donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj<br>
+    donations: PGiNfS4KTmb7W9GDxrA54tYTRhmSK36Pyj
         
   supported methods:
 
     blocks/count - fetch total block count
-    blocks/&lt;id&gt; - fetch block meta data
+    blocks/<id> - fetch block meta data
     blocks/last - fetch last block
-    blocks/last/&lt;n&gt; - fetch last n blocks
+    blocks/last/<n> - fetch last n blocks
 
-    network/&lt;id&gt;  - fetch network statistics at a block number
+    network/<id>  - fetch network statistics at a block number
     network/last - fetch last block
-    network/last/&lt;n&gt; - fetch last n network statistics
+    network/last/<n> - fetch last n network statistics
 
-    compare/&lt;first_id&gt;/&lt;second_id&gt; - compare network stats for two block heights
-    compare/delta/&lt;id&gt;/&lt;delta&gt; - compare network stats for a block 'id' and block 'id-delta'
-    compare/last/&lt;delta&gt; - compare last block and 'last block - delta' network stats
-    
-        </pre>""";
+    compare/<first_id>/<second_id> - compare network stats for two block heights
+    compare/delta/<id>/<delta> - compare network stats for a block 'id' and block 'id-delta'
+    compare/last/<delta> - compare last block and 'last block - delta' network stats
+       """;
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         return usage
     def default(self):
         cherrypy.response.status = 404
@@ -414,7 +424,7 @@ config = {'/':
 }
 application = cherrypy.tree.mount(api,"/api",config)
 cherrypy.config.update({'error_page.404': error_404, 
-                        'environment':'production',
+                        #'environment':'production',
                         'log.error_file': '/app/logs/api_server.error.log',
                         'log.access_file': '/app/logs/api_server.access.log'})
 
