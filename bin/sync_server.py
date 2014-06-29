@@ -88,10 +88,10 @@ class Peercoin(object):
         data["chain"] = 0
         data["txcount"] = len(block["tx"])
         if self.pos.match(block["flags"]):
-            data["pos"] = "true"
+            data["pos"] = "TRUE"
             data["txcount"] = data["txcount"] - 2
         else: 
-            data["pos"] = "false"
+            data["pos"] = "FALSE"
             data["stakeage"] = 0
             data["txcount"] = data["txcount"] - 1
         data["hashprevblock"] = block["previousblockhash"]

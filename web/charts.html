@@ -46,6 +46,10 @@ jQuery(document).ready(function() {
                             if(c3.min != xMin || c3.max != xMax) {
                                 chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
                             }
+                            var c4 = chart3.xAxis[0].getExtremes();
+                            if(c4.min != xMin || c4.max != xMax) {
+                                chart4.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
                         }
                     }
                 },
@@ -86,14 +90,18 @@ jQuery(document).ready(function() {
                             if(c3.min != xMin || c3.max != xMax) {
                                 chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
                             }
+                            var c4 = chart4.xAxis[0].getExtremes();
+                            if(c4.min != xMin || c4.max != xMax) {
+                                chart4.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
                         }
                     }
                 },
                 series : [{
-                    name : 'Difficulty',
+                    name : 'POS Difficulty',
                     data : data,
                     tooltip: {
-                        valueDecimals: 0
+                        valueDecimals: 2
                     }
                 }]
             });
@@ -122,15 +130,19 @@ jQuery(document).ready(function() {
                             if(c1.min != xMin || c1.max != xMax) {
                                 chart1.xAxis[0].setExtremes(xMin, xMax, true, false);
                             }
-                            var c3 = chart3.xAxis[0].getExtremes();
-                            if(c3.min != xMin || c3.max != xMax) {
-                                chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            var c2 = chart2.xAxis[0].getExtremes();
+                            if(c2.min != xMin || c2.max != xMax) {
+                                chart2.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
+                            var c4 = chart2.xAxis[0].getExtremes();
+                            if(c4.min != xMin || c4.max != xMax) {
+                                chart4.xAxis[0].setExtremes(xMin, xMax, true, false);
                             }
                         }
                     }
                 },
                 series : [{
-                    name : 'Difficulty',
+                    name : 'POW Difficulty',
                     data : data,
                     tooltip: {
                         valueDecimals: 0
@@ -158,13 +170,17 @@ jQuery(document).ready(function() {
                         afterSetExtremes:function(event) {
                             var xMin = event.min;
                             var xMax = event.max;
+                            var c1 = chart1.xAxis[0].getExtremes();
+                            if(c1.min != xMin || c1.max != xMax) {
+                                chart1.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            }
                             var c2 = chart2.xAxis[0].getExtremes();
                             if(c2.min != xMin || c2.max != xMax) {
                                 chart2.xAxis[0].setExtremes(xMin, xMax, true, false);
                             }
-                            var c1 = chart1.xAxis[0].getExtremes();
-                            if(c1.min != xMin || c1.max != xMax) {
-                                chart1.xAxis[0].setExtremes(xMin, xMax, true, false);
+                            var c3 = chart3.xAxis[0].getExtremes();
+                            if(c3.min != xMin || c3.max != xMax) {
+                                chart3.xAxis[0].setExtremes(xMin, xMax, true, false);
                             }
                         }
                     }
