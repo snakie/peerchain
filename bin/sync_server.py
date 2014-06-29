@@ -88,10 +88,10 @@ class Peercoin(object):
         data["chain"] = 0
         data["txcount"] = len(block["tx"])
         if self.pos.match(block["flags"]):
-            data["pos"] = "TRUE"
+            data["POS"] = "TRUE"
             data["txcount"] = data["txcount"] - 2
         else: 
-            data["pos"] = "FALSE"
+            data["POS"] = "FALSE"
             data["stakeage"] = 0
             data["txcount"] = data["txcount"] - 1
         data["hashprevblock"] = block["previousblockhash"]
@@ -116,12 +116,12 @@ class Peercoin(object):
                     data["received"] += long(out["value"])
                 for inp in txn["inpoints"]:
                     data["sent"] += long(inp["value"])
-                if data["pos"] and count == 1:
+                if data["POS"] == "TRUE" and count == 1:
                     data["stakeage"] = round(txn["coindays"] / (data["sent"]/1e6),2)
-            if data["pos"] and count < 2:
+            if data["POS"] == "TRUE" and count < 2:
                 data["staked"] += data["sent"]
             count += 1
-        if data["pos"]:
+        if data["POS"] == "TRUE":
             data["sent"] = data["sent"] - data["staked"]
             data["received"] = data["received"] - data["staked"] - data["reward"]
         else:
@@ -179,7 +179,7 @@ class Database(object):
     def insert_block(self,block,stats):
           cursor = self.conn.cursor()
           query = cursor.execute(self.block_query,(block["id"],block["chain"],block['stakeage'],
-            block['pos'],block['hash'],block['hashprevblock'],block['hashmerkleroot'],block['time'],
+            block['POS'],block['hash'],block['hashprevblock'],block['hashmerkleroot'],block['time'],
             block['bits'],str(block['diff']),block['nonce'],block['txcount'],block['reward'],block['staked'],
             block['sent'],block['received'],block['destroyed']))
           query = cursor.execute(self.stats_query,(stats["last_block"],stats["destroyed_fees"],
@@ -311,7 +311,7 @@ class Syncer(object):
         tx_broadcast["value"] = format(tx_broadcast["value"] / 1e6,'.6f')
         self.txnotify.post(tx_broadcast)
     def update_stats(self,stats,data):
-        if data["pos"]:
+        if data["POS"] == "TRUE":
             stats["POS_blocks"] += 1
             stats["minted_coins"] += data["reward"]
         else:
@@ -350,6 +350,7 @@ class Syncer(object):
             sys.exit(1);
         #print stats
         # even though I may not have inserted the block
+        data['POS'] = data['POS'].lower()
         self.notify.post_block(data,block["time"])
         self.networknotify.post_stats(stats)
         self.comparisonnotify.post_comparison(stats["last_block"])

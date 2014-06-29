@@ -75,7 +75,7 @@ function add_block(block) {
     var cells = block_to_row(block);
     var index = insert_index('blocks',block.id);
     if(index < 0) {
-        console.log("already existing block "+id)
+        console.log("already existing block "+block.id)
         return;
     }
     $("#blocks tr:eq("+index+")").after(cells.join(""));
