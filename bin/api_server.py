@@ -264,9 +264,9 @@ class DataSeries(object):
     def __init__(self,blockchain):
         self.blockchain = blockchain
     def GET (self, type, start):
-        if type != 'diff' and type != 'inflation_rate' and type != 'money_supply':
+        if type != 'pow_diff' and type != 'pos_diff' and type != 'inflation_rate' and type != 'money_supply':
             cherrypy.response.status = 500
-            return "type must be diff or inflation_rate"
+            return "type must be pow_diff, pos_diff, money_supply, or inflation_rate"
         try:
             start = int(start)
         except ValueError:
@@ -286,23 +286,30 @@ class DataSeries(object):
             type = 'money_supply'
             calc_inflation = 1
             limit = 2016
+        querytype = type
+        if(type == 'pow_diff'):
+            POS_compare = "FALSE"
+            querytype = 'diff'
+        elif(type == 'pos_diff'):
+            POS_compare = "TRUE"
+            querytype = 'diff'
         while current_block - limit > 0:
             #print "processing "+str(current_block)
-            curr = self.blockchain.get_series_stats(type,current_block)
+            curr = self.blockchain.get_series_stats(querytype,current_block)
             if(not isinstance(curr,dict)):
                 return curr
             if type == 'diff':
-                print curr['POS']
-                while curr['POS'] == "TRUE":
-                    print "decrementing to find POS: "+str(current_block)
+                #print curr['POS']
+                while curr['POS'] == POS_compare:
+                    #print "decrementing to find POS: "+str(current_block)
                     current_block = current_block - 1;
-                    curr = self.blockchain.get_series_stats(type,current_block)
+                    curr = self.blockchain.get_series_stats(querytype,current_block)
                     if(not isinstance(curr,dict)):
                         return curr
             time = curr['time']
             #print time
             if(calc_inflation):
-                prev = self.blockchain.get_series_stats(type,current_block-2016)
+                prev = self.blockchain.get_series_stats(querytype,current_block-2016)
                 dur = curr['time'] - prev['time']
                 inf_rate = (curr["money_supply"] - prev["money_supply"]) / 1e6
                 total_seconds = dur / 1e3
@@ -311,9 +318,9 @@ class DataSeries(object):
                 templist = [time, inf_rate]
             else:
                 if(type == 'money_supply'):
-                    templist = [time, curr[type]/1e6]
+                    templist = [time, curr[querytype]/1e6]
                 else:    
-                    templist = [time, curr[type]]
+                    templist = [time, curr[querytype]]
             results.insert(0,templist)
             current_block = current_block - resolution;
         #print results
