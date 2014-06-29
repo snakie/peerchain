@@ -88,10 +88,10 @@ class Peercoin(object):
         data["chain"] = 0
         data["txcount"] = len(block["tx"])
         if self.pos.match(block["flags"]):
-            data["pos"] = True
+            data["pos"] = "true"
             data["txcount"] = data["txcount"] - 2
         else: 
-            data["pos"] = False
+            data["pos"] = "false"
             data["stakeage"] = 0
             data["txcount"] = data["txcount"] - 1
         data["hashprevblock"] = block["previousblockhash"]
@@ -144,6 +144,11 @@ class Database(object):
         self.block_query = "INSERT INTO blocks (id,chain,stakeage,pos,hash,hashprevblock,hashmerkleroot,time,bits,diff,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     def shutdown(self):
         self.conn.close()
+    def rowtodict(self,tuple):
+        dict = {}
+        for key in tuple.keys():
+            dict[key] = tuple[key]
+        return dict
     def block_count(self):
           cursor = self.conn.cursor()
           query = cursor.execute(self.last_query)
@@ -165,22 +170,22 @@ class Database(object):
           stats = cursor.fetchone()
           if stats is None:
             return None
-          return stats
+          return self.rowtodict(stats)
     def delete_block(self,id):
           cursor = self.conn.cursor()
           query = cursor.execute(self.delete_query,(id,))
           query = cursor.execute(self.delete_stats_query,(id,))
-          cursor.commit()
+          self.conn.commit()
     def insert_block(self,block,stats):
           cursor = self.conn.cursor()
           query = cursor.execute(self.block_query,(block["id"],block["chain"],block['stakeage'],
             block['pos'],block['hash'],block['hashprevblock'],block['hashmerkleroot'],block['time'],
-            block['bits'],block['diff'],block['nonce'],block['txcount'],block['reward'],block['staked'],
+            block['bits'],str(block['diff']),block['nonce'],block['txcount'],block['reward'],block['staked'],
             block['sent'],block['received'],block['destroyed']))
           query = cursor.execute(self.stats_query,(stats["last_block"],stats["destroyed_fees"],
             stats["mined_coins"],stats["minted_coins"],stats["money_supply"],stats["POS_blocks"],
             stats["POW_blocks"],stats["time"],stats["transactions"]))
-          cursor.commit()
+          self.conn.commit()
 
 class Syncer(object):
     def __init__(self):
@@ -236,7 +241,7 @@ class Syncer(object):
         return options
     def get_heights(self):
         self.peercoin_height = self.daemon.block_count()
-        self.db_height = self.db.block_count() - 1
+        self.db_height = self.db.block_count() 
         logging.debug("ppcoind has "+str(self.peercoin_height)+" blocks") 
         logging.debug("database has "+str(self.db_height)+" blocks")
         self.diff = self.peercoin_height - self.db_height;
@@ -305,21 +310,23 @@ class Syncer(object):
         tx_broadcast["time"] = date.strftime('%Y-%m-%d %H:%M:%S%z')
         tx_broadcast["value"] = format(tx_broadcast["value"] / 1e6,'.6f')
         self.txnotify.post(tx_broadcast)
-    def update_stats(self,stats,time,data):
+    def update_stats(self,stats,data):
         if data["pos"]:
-            stats["pos_blocks"] += 1
+            stats["POS_blocks"] += 1
             stats["minted_coins"] += data["reward"]
         else:
-            stats["pow_blocks"] += 1
+            stats["POW_blocks"] += 1
             stats["mined_coins"] += data["reward"]
         stats["money_supply"] += data["reward"]
         stats["money_supply"] -= data["destroyed"]
         stats["destroyed_fees"] += data["destroyed"]
         stats["last_block"] += 1
         stats["transactions"] += data["txcount"]
+        #delta = dateutil.parser.parse(time.replace(tzinfo=None)-datetime.datetime(1970,1,1)
+        #stats["time"] = (delta.days * 86400 + delta.seconds) * 1000
         #delta = datetime.datetime.utcnow()-datetime.datetime(1970,1,1)
         #stats["time"] = (delta.days * 86400 + delta.seconds) * 1000
-        stats["time"] = time
+        stats["time"] = data["time"]
 
         return stats 
     def insert_block(self,hash):
@@ -329,7 +336,7 @@ class Syncer(object):
         stats = self.db.get_stats(data["id"] - 1)
         #print data
         if stats:
-            stats = self.update_stats(stats,block["time"],data)
+            stats = self.update_stats(stats,data)
             logging.debug(data)
             if self.dryrun:
                 logging.info("not inserting block: dryrun enabled")
