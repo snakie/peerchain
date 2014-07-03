@@ -53,6 +53,7 @@ class Blockchain(object):
         stats["minted_coins"] = format(stats["minted_coins"] / 1e6,'.6f')
         stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
+        stats["pow_block_reward"] = format(stats["pow_block_reward"] / 1e6,'.6f')
         #stats["pow_difficulty"] = format(stats["pow_difficulty"],'.2f')
         #stats["pos_difficulty"] = format(stats["pos_difficulty"],'.8f')
         stats["time"] = datetime.datetime.utcfromtimestamp(stats["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
@@ -78,6 +79,7 @@ class Blockchain(object):
         ret['pos_difficulty_delta'] = format(first['pos_difficulty'] - second['pos_difficulty'],'.8f')
         ret['pow_blocks_delta'] = first['pow_blocks'] - second['pow_blocks']
         ret['pow_difficulty_delta'] = first['pow_difficulty'] - second['pow_difficulty']
+        ret['pow_block_reward_delta'] = format((first['pow_block_reward'] - second['pow_block_reward']) / 1e6,'.6f')
         ret['transactions'] = first['transactions'] - second['transactions']
         total_seconds = (first['time'] - second['time']) / 1e3
         ret['duration'] = datetime.timedelta(0,total_seconds)
@@ -277,9 +279,9 @@ class DataSeries(object):
         self.blockchain = blockchain
     def GET (self, type, start):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        if type != 'pow_diff' and type != 'pos_diff' and type != 'inflation_rate' and type != 'money_supply':
+        if type != 'pow_difficulty' and type != 'pos_difficulty' and type != 'inflation_rate' and type != 'money_supply' and type != 'pow_block_reward':
             cherrypy.response.status = 500
-            return "type must be pow_diff, pos_diff, money_supply, or inflation_rate"
+            return "type must be pow_difficulty, pos_difficulty, money_supply, pow_block_reward, or inflation_rate"
         try:
             start = int(start)
         except ValueError:

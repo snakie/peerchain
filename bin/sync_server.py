@@ -22,6 +22,7 @@ class Notify(object):
         stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
         stats["pow_difficulty"] = format(stats["pow_difficulty"],'.8f')
         stats["pos_difficulty"] = format(stats["pos_difficulty"],'.8f')
+        stats["pow_block_reward"] = format(stats["pow_block_reward"] / 1e6,'.6f')
         stats["time"] = time
         return stats
     def block_to_json(self,block,time):
@@ -144,7 +145,7 @@ class Database(object):
         self.last_diff_query = "SELECT pow_difficulty,pos_difficulty from stats where last_block=?"
         self.delete_query = "delete from blocks where id=?"
         self.delete_stats_query = "delete from stats where last_block=?"
-        self.stats_query = "INSERT INTO stats (last_block,destroyed_fees,mined_coins,minted_coins,money_supply,pos_blocks,pow_blocks,time,transactions,pow_difficulty,pos_difficulty) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+        self.stats_query = "INSERT INTO stats (last_block,destroyed_fees,mined_coins,minted_coins,money_supply,pos_blocks,pow_blocks,time,transactions,pow_block_reward,pow_difficulty,pos_difficulty) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
         self.block_query = "INSERT INTO blocks (id,chain,stakeage,pos,hash,hashprevblock,hashmerkleroot,time,bits,difficulty,nonce,txcount,reward,staked,sent,received,destroyed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
     def shutdown(self):
         self.conn.close()
@@ -188,7 +189,7 @@ class Database(object):
             block['sent'],block['received'],block['destroyed']))
           query = cursor.execute(self.stats_query,(stats["last_block"],stats["destroyed_fees"],
             stats["mined_coins"],stats["minted_coins"],stats["money_supply"],stats["pos_blocks"],
-            stats["pow_blocks"],stats["time"],stats["transactions"],str(stats["pow_difficulty"]),str(stats["pos_difficulty"])))
+            stats["pow_blocks"],stats["time"],stats["transactions"],stats["pow_block_reward"],str(stats["pow_difficulty"]),str(stats["pos_difficulty"])))
           self.conn.commit()
 
 class Syncer(object):
@@ -322,7 +323,8 @@ class Syncer(object):
         else:
             stats["pow_blocks"] += 1
             stats["mined_coins"] += data["reward"]
-            stats["pow_difficulty"] = data["difficulty"];
+            stats["pow_difficulty"] = data["difficulty"]
+            stats["pow_block_reward"] = data["reward"]
         stats["money_supply"] += data["reward"]
         stats["money_supply"] -= data["destroyed"]
         stats["destroyed_fees"] += data["destroyed"]
