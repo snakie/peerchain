@@ -6,15 +6,15 @@ var loader;
 function block_to_row(block) {
        var cells = [];
        cells.push("<tr>");
-       cells.push("<td><a href=\"/api/blocks/"+block.id+"\">"+block.id+"</td>");
+       cells.push("<td><a href=\"/api/blocks/"+block.id+"\">"+number_commas(block.id)+"</td>");
        cells.push("<td><abbr class=\"timeago\" title=\""+block.time+"\">"+block.time+"</abbr></td>");
        cells.push("<td>"+(block.pos == "true" ? "POS" : "POW")+"</td>");
        cells.push("<td>"+(block.pos == "true" ? parseFloat(block.difficulty).toFixed(2) : (parseFloat(block.difficulty) / 1e6).toFixed(2) + 'M')+"</td>");
-       cells.push("<td>"+parseFloat(block.reward).toFixed(2)+"</td>");
+       cells.push("<td>"+number_commas(parseFloat(block.reward).toFixed(2))+"</td>");
        cells.push("<td>"+block.txcount+"</td>");
-       cells.push("<td>"+parseFloat(block.received).toFixed(2)+"</td>");
+       cells.push("<td>"+number_commas(parseFloat(block.received).toFixed(2))+"</td>");
        cells.push("<td>"+parseFloat(block.destroyed).toFixed(2)+"</td>");
-       cells.push("<td>"+(block.pos == "true" ? parseFloat(block.staked).toFixed(2) : '-')+"</td>");
+       cells.push("<td>"+(block.pos == "true" ? number_commas(parseFloat(block.staked).toFixed(2)) : '-')+"</td>");
        cells.push("<td>"+(block.pos == "true" ? parseFloat(block.stakeage).toFixed(2) : '-')+"</td>");
        cells.push("</tr>");
        return cells;
@@ -22,17 +22,17 @@ function block_to_row(block) {
 function stats_to_row(stats) {
        var cells = [];
        cells.push("<tr>");
-       cells.push("<td><a href=\"/api/network/"+stats.last_block+"\">"+stats.last_block+"</td>");
+       cells.push("<td><a href=\"/api/network/"+stats.last_block+"\">"+number_commas(stats.last_block)+"</td>");
        cells.push("<td><abbr class=\"timeago\" title=\""+stats.time+"\">"+stats.time+"</abbr></td>");
-       cells.push("<td>"+stats.pow_blocks+"</td>");
+       cells.push("<td>"+number_commas(stats.pow_blocks)+"</td>");
        cells.push("<td>"+parseFloat(stats.pow_difficulty / 1e6).toFixed(2)+"M</td>");
-       cells.push("<td>"+stats.pos_blocks+"</td>");
+       cells.push("<td>"+number_commas(stats.pos_blocks)+"</td>");
        cells.push("<td>"+parseFloat(stats.pos_difficulty).toFixed(2)+"</td>");
-       cells.push("<td>"+parseFloat(stats.mined_coins).toFixed(2)+"</td>");
-       cells.push("<td>"+parseFloat(stats.minted_coins).toFixed(2)+"</td>");
-       cells.push("<td>"+parseFloat(stats.destroyed_fees).toFixed(2)+"</td>");
-       cells.push("<td>"+parseFloat(stats.money_supply).toFixed(2)+"</td>");
-       cells.push("<td>"+stats.transactions+"</td>");
+       cells.push("<td>"+number_commas(parseFloat(stats.mined_coins).toFixed(2))+"</td>");
+       cells.push("<td>"+number_commas(parseFloat(stats.minted_coins).toFixed(2))+"</td>");
+       cells.push("<td>"+number_commas(parseFloat(stats.destroyed_fees).toFixed(2))+"</td>");
+       cells.push("<td>"+number_commas(parseFloat(stats.money_supply).toFixed(2))+"</td>");
+       cells.push("<td>"+number_commas(stats.transactions)+"</td>");
        cells.push("</tr>");
        return cells;
 }
@@ -41,23 +41,29 @@ function txn_to_row(tx) {
     cells.push("<tr>");
     cells.push("<td>"+tx.hash+"</td>");
     cells.push("<td><abbr class=\"timeago\" title=\""+tx.time+"\">"+tx.time+"</abbr></td>");
-    cells.push("<td>"+parseFloat(tx.value).toFixed(2)+"</td>");
+    cells.push("<td>"+number_commas(parseFloat(tx.value).toFixed(2))+"</td>");
     cells.push("</tr>");
     return cells;
 }
+function number_commas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+function remove_commas(x) {
+    return x.toString().replace(",", "");
+    }
 function compare_to_row(compare) {
     var cells = []
     cells.push("<tr>");
-    cells.push("<td><a href=\"/api/compare/delta/"+compare.last_block+"/"+network_review+"\">"+compare.last_block+"</td>");
-    cells.push("<td><a href=\"/api/network/"+compare.last_block+"\">"+parseFloat(compare.money_supply_end).toFixed(2)+"</td>");
+    cells.push("<td><a href=\"/api/compare/delta/"+compare.last_block+"/"+network_review+"\">"+number_commas(compare.last_block)+"</td>");
+    cells.push("<td><a href=\"/api/network/"+compare.last_block+"\">"+number_commas(parseFloat(compare.money_supply_end).toFixed(2))+"</td>");
     cells.push("<td>"+parseFloat(100*compare.pos_blocks_delta/(compare.pos_blocks_delta+compare.pow_blocks_delta)).toFixed(2)+"%</td>");
-    cells.push("<td>"+(parseFloat(compare.pos_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pos_difficulty_delta).toFixed(4)+"</td>");
-    cells.push("<td>"+(parseFloat(compare.pow_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pow_difficulty_delta).toFixed(0)+"</td>");
+    cells.push("<td>"+(parseFloat(compare.pos_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pos_difficulty_delta).toFixed(3)+"</td>");
+    cells.push("<td>"+number_commas((parseFloat(compare.pow_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pow_difficulty_delta).toFixed(0))+"</td>");
     cells.push("<td>"+(parseFloat(compare.pow_block_reward_delta) > 0 ? "+" : "")+parseFloat(compare.pow_block_reward_delta).toFixed(2)+"</td>");
     cells.push("<td><a href=\"charts.html\">"+(parseFloat(compare.inflation_rate) > 0 ? "+" : "")+compare.inflation_rate+"%</a></td>");
-    cells.push("<td>+"+parseFloat(compare.mined_coins_delta).toFixed(2)+"</td>");
-    cells.push("<td>+"+parseFloat(compare.minted_coins_delta).toFixed(2)+"</td>");
-    cells.push("<td>-"+parseFloat(compare.destroyed_fees_delta).toFixed(2)+"</td>");
+    cells.push("<td>+"+number_commas(parseFloat(compare.mined_coins_delta).toFixed(2))+"</td>");
+    cells.push("<td>+"+number_commas(parseFloat(compare.minted_coins_delta).toFixed(2))+"</td>");
+    cells.push("<td>-"+number_commas(parseFloat(compare.destroyed_fees_delta).toFixed(2))+"</td>");
     cells.push("<td>"+compare.duration+"</td>");
     cells.push("</tr>");
     return cells;
@@ -66,7 +72,7 @@ function insert_index(header,id) {
     var l = $("#"+header+" tr").size();
     var j = 0;
     for(i=1;i<l;i++) {
-        var height = parseInt($("#"+header+" tr:eq("+i+") td:first a").html());
+        var height = parseInt(remove_commas($("#"+header+" tr:eq("+i+") td:first a").html()));
         //console.log("checking id:"+height);
         if(id == height)
             return -1;

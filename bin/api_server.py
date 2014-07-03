@@ -55,7 +55,7 @@ class Blockchain(object):
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
         stats["pow_block_reward"] = format(stats["pow_block_reward"] / 1e6,'.6f')
         #stats["pow_difficulty"] = format(stats["pow_difficulty"],'.2f')
-        #stats["pos_difficulty"] = format(stats["pos_difficulty"],'.8f')
+        stats["pos_difficulty"] = format(stats["pos_difficulty"],'.8f')
         stats["time"] = datetime.datetime.utcfromtimestamp(stats["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
         return stats
     def rowtodict(self,tuple):
@@ -78,7 +78,7 @@ class Blockchain(object):
         ret['pos_blocks_delta'] = first['pos_blocks'] - second['pos_blocks']
         ret['pos_difficulty_delta'] = format(first['pos_difficulty'] - second['pos_difficulty'],'.8f')
         ret['pow_blocks_delta'] = first['pow_blocks'] - second['pow_blocks']
-        ret['pow_difficulty_delta'] = first['pow_difficulty'] - second['pow_difficulty']
+        ret['pow_difficulty_delta'] = format(first['pow_difficulty'] - second['pow_difficulty'],'.8f')
         ret['pow_block_reward_delta'] = format((first['pow_block_reward'] - second['pow_block_reward']) / 1e6,'.6f')
         ret['transactions'] = first['transactions'] - second['transactions']
         total_seconds = (first['time'] - second['time']) / 1e3
