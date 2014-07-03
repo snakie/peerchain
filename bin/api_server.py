@@ -38,10 +38,10 @@ class Blockchain(object):
         self.last_query = "SELECT max(id) from blocks"
     def block_to_json(self,block):
         block["staked"] = format(block["staked"] / 1e6,'.6f')
-        block["diff"] = format(block["diff"],'.8f')
+        #block["difficulty"] = format(block["difficulty"],'.8f')
         block["reward"] = format(block["reward"] / 1e6,'.6f')
         block["sent"] = format(block["sent"] / 1e6,'.6f')
-        block["POS"] = block["POS"].lower()
+        block["pos"] = block["pos"].lower()
         block["received"] = format(block["received"] / 1e6,'.6f')
         block["destroyed"] = format(block["destroyed"] / 1e6,'.6f')
         block["stakeage"] = format(block["stakeage"],'.2f')
@@ -53,6 +53,8 @@ class Blockchain(object):
         stats["minted_coins"] = format(stats["minted_coins"] / 1e6,'.6f')
         stats["money_supply"] = format(stats["money_supply"] / 1e6,'.6f')
         stats["destroyed_fees"] = format(stats["destroyed_fees"] / 1e6,'.6f')
+        #stats["pow_difficulty"] = format(stats["pow_difficulty"],'.2f')
+        #stats["pos_difficulty"] = format(stats["pos_difficulty"],'.8f')
         stats["time"] = datetime.datetime.utcfromtimestamp(stats["time"] / 1e3).strftime("%Y-%m-%d %H:%M:%S+0000")
         return stats
     def rowtodict(self,tuple):
@@ -72,8 +74,10 @@ class Blockchain(object):
         ret['last_block'] = first['last_block']
         ret['first_block'] = second['last_block']
         ret['block_delta'] = first['last_block'] - second['last_block']
-        ret['pos_blocks'] = first['POS_blocks'] - second['POS_blocks']
-        ret['pow_blocks'] = first['POW_blocks'] - second['POW_blocks']
+        ret['pos_blocks_delta'] = first['pos_blocks'] - second['pos_blocks']
+        ret['pos_difficulty_delta'] = format(first['pos_difficulty'] - second['pos_difficulty'],'.8f')
+        ret['pow_blocks_delta'] = first['pow_blocks'] - second['pow_blocks']
+        ret['pow_difficulty_delta'] = first['pow_difficulty'] - second['pow_difficulty']
         ret['transactions'] = first['transactions'] - second['transactions']
         total_seconds = (first['time'] - second['time']) / 1e3
         ret['duration'] = datetime.timedelta(0,total_seconds)
@@ -85,9 +89,9 @@ class Blockchain(object):
         ret['inflation_rate'] = format(100*ret['inflation_rate'] * times_in_year / (first['money_supply']/1e6),'.2f')
         ret['duration'] = ret['duration'].__str__()
         ret["money_supply_end"] = format(first["money_supply"] / 1e6,'.6f')
-        ret["mined_coins"] = format((first["mined_coins"]-second["mined_coins"]) / 1e6,'.6f')
-        ret["minted_coins"] = format((first["minted_coins"]-second["minted_coins"]) / 1e6,'.6f')
-        ret["destroyed_fees"] = format((first["destroyed_fees"]-second["destroyed_fees"]) / 1e6,'.6f')
+        ret["mined_coins_delta"] = format((first["mined_coins"]-second["mined_coins"]) / 1e6,'.6f')
+        ret["minted_coins_delta"] = format((first["minted_coins"]-second["minted_coins"]) / 1e6,'.6f')
+        ret["destroyed_fees_delta"] = format((first["destroyed_fees"]-second["destroyed_fees"]) / 1e6,'.6f')
         #print first
         return ret
     def get_stats(self,id,pretty=True):
