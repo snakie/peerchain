@@ -51,8 +51,9 @@ function compare_to_row(compare) {
     cells.push("<td><a href=\"/api/compare/delta/"+compare.last_block+"/"+network_review+"\">"+compare.last_block+"</td>");
     cells.push("<td><a href=\"/api/network/"+compare.last_block+"\">"+parseFloat(compare.money_supply_end).toFixed(2)+"</td>");
     cells.push("<td>"+parseFloat(100*compare.pos_blocks_delta/(compare.pos_blocks_delta+compare.pow_blocks_delta)).toFixed(2)+"%</td>");
-    cells.push("<td>"+(parseFloat(compare.pow_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pow_difficulty_delta / 1e6).toFixed(2)+"M</td>");
     cells.push("<td>"+(parseFloat(compare.pos_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pos_difficulty_delta).toFixed(2)+"</td>");
+    cells.push("<td>"+(parseFloat(compare.pow_difficulty_delta) > 0 ? "+" : "")+parseFloat(compare.pow_difficulty_delta / 1e6).toFixed(2)+"M</td>");
+    cells.push("<td>"+(parseFloat(compare.pow_block_reward_delta) > 0 ? "+" : "")+parseFloat(compare.pow_block_reward_delta).toFixed(2)+"</td>");
     cells.push("<td><a href=\"charts.html\">"+compare.inflation_rate+"%</a></td>");
     cells.push("<td>"+parseFloat(compare.mined_coins_delta).toFixed(2)+"</td>");
     cells.push("<td>"+parseFloat(compare.minted_coins_delta).toFixed(2)+"</td>");
