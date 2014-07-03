@@ -109,10 +109,7 @@ class Blockchain(object):
             return self.stats_to_json(stats)
         return stats
     def get_series_stats(self,type,id):
-        if type == 'diff': #diff is in the blocks table
-            qstr = "SELECT time, pos, diff from blocks where id=?"
-        else:
-            qstr = "SELECT time, "+type+" from stats where last_block=?"
+        qstr = "SELECT time, "+type+" from stats where last_block=?"
         global database
         cursor = database.conn.cursor()
         query = cursor.execute(qstr,(id,));    
@@ -279,9 +276,31 @@ class DataSeries(object):
         self.blockchain = blockchain
     def GET (self, type, start):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        if type != 'pow_difficulty' and type != 'pos_difficulty' and type != 'inflation_rate' and type != 'money_supply' and type != 'pow_block_reward':
+        allowed_types = ['destroyed_fees',
+                         'inflation_rate',
+                         'mined_coins',
+                         'minted_coins',
+                         'money_supply',
+                         'pos_blocks',
+                         'pos_difficulty',
+                         'pow_block_reward',
+                         'pow_blocks',
+                         'pow_difficulty',
+                         'transactions']
+        formatting = ['destroyed_fees',
+                      'mined_coins',
+                      'minted_coins',
+                      'money_supply',
+                      'pow_block_reward']
+        if not type in allowed_types:
             cherrypy.response.status = 500
-            return "type must be pow_difficulty, pos_difficulty, money_supply, pow_block_reward, or inflation_rate"
+            ret = "type must be one of the following:\n"
+            for i in allowed_types:
+                ret = ret + "    "+i+"\n"
+            return ret
+        format_value = False;
+        if type in formatting:
+            format_value = True;
         try:
             start = int(start)
         except ValueError:
@@ -301,30 +320,15 @@ class DataSeries(object):
             type = 'money_supply'
             calc_inflation = 1
             limit = 2016
-        querytype = type
-        if(type == 'pow_diff'):
-            POS_compare = "TRUE"
-            querytype = 'diff'
-        elif(type == 'pos_diff'):
-            POS_compare = "FALSE"
-            querytype = 'diff'
         while current_block - limit > 0:
             #print "processing "+str(current_block)
-            curr = self.blockchain.get_series_stats(querytype,current_block)
+            curr = self.blockchain.get_series_stats(type,current_block)
             if(not isinstance(curr,dict)):
                 return curr
-            if querytype == 'diff':
-                #print curr['POS']
-                while curr['POS'] == POS_compare:
-                    #print "decrementing to find POS = "+POS_compare+": "+str(current_block)
-                    current_block = current_block - 1;
-                    curr = self.blockchain.get_series_stats(querytype,current_block)
-                    if(not isinstance(curr,dict)):
-                        return curr
             time = curr['time']
             #print time
             if(calc_inflation):
-                prev = self.blockchain.get_series_stats(querytype,current_block-2016)
+                prev = self.blockchain.get_series_stats(type,current_block-2016)
                 dur = curr['time'] - prev['time']
                 inf_rate = (curr["money_supply"] - prev["money_supply"]) / 1e6
                 total_seconds = dur / 1e3
@@ -332,10 +336,10 @@ class DataSeries(object):
                 inf_rate = 100*inf_rate * times_in_year / (curr['money_supply']/1e6)
                 templist = [time, inf_rate]
             else:
-                if(type == 'money_supply'):
-                    templist = [time, curr[querytype]/1e6]
+                if(format_value):
+                    templist = [time, curr[type]/1e6]
                 else:    
-                    templist = [time, curr[querytype]]
+                    templist = [time, curr[type]]
             results.insert(0,templist)
             current_block = current_block - resolution;
         #print results

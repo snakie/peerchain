@@ -3,12 +3,12 @@
 <script src="/js/highstock.js"></script>
 <script src="/js/exporting.js"></script>
 
-<div id="container" style="height: 400px; min-width: 310px">Loading Inflation Rate Data...</div>
-<div class="footnote text-right">inflation values calculated over previous 2016 blocks</div>
-<div id="container2" style="height: 400px; min-width: 310px">Loading POW Block Reward Data...</div>
-<div id="container3" style="height: 400px; min-width: 310px">Loading POW Difficulty Data...</div>
-<div id="container4" style="height: 400px; min-width: 310px">Loading POS Difficulty Data...</div>
-<div id="container5" style="height: 400px; min-width: 310px">Loading Transaction Data...</div>
+<div id="container" style="height: 400px; min-width: 310px">Loading Money Supply Data...</div>
+<div id="container2" style="height: 400px; min-width: 310px">Loading Mined Coins Data...</div>
+<div id="container3" style="height: 400px; min-width: 310px">Loading Minted Coins Data...</div>
+<div id="container4" style="height: 400px; min-width: 310px">Loading Destroyed Fees Data...</div>
+<div id="container5" style="height: 400px; min-width: 310px">Loading POS Blocks Data...</div>
+<div id="container6" style="height: 400px; min-width: 310px">Loading POW Blocks Data...</div>
 <script>
 var charts = [];
 function get_chart(chart_title,series_title,data,container,precision) {
@@ -47,34 +47,40 @@ function get_chart(chart_title,series_title,data,container,precision) {
                     }
                 }]
        });
+       var c = temp_chart.xAxis[0].getExtremes();
+       temp_chart.xAxis[0].setExtremes(c.dataMin,c.dataMax, true,false);
        return temp_chart;
 }
 
 
 jQuery(document).ready(function() {
-    $("#chartnav").addClass("active");
+    $("#chartsupplynav").addClass("active");
 
     $.getJSON('/api/blocks/count', function(bc) {
         //console.log(bc);
-        $.getJSON('/api/series/inflation_rate/'+bc, function(data) {
+        $.getJSON('/api/series/money_supply/'+bc, function(data) {
             $('#container').empty();
-            charts.push(get_chart('Peercoin Inflation Rate','% Inflation Rate',data,'container',2));
+            charts.push(get_chart('Peercoin Money Supply','Money Supply',data,'container',2));
         });
-        $.getJSON('/api/series/pow_block_reward/'+bc, function(data) {
+        $.getJSON('/api/series/mined_coins/'+bc, function(data) {
             $('#container2').empty();
-            charts.push(get_chart('Peercoin POW Block Reward','POW Block Reward',data,'container2',2));
+            charts.push(get_chart('Peercoin Mined Coins','Mined Coins',data,'container2',2));
         });
-        $.getJSON('/api/series/pow_difficulty/'+bc, function(data) {
+        $.getJSON('/api/series/minted_coins/'+bc, function(data) {
             $('#container3').empty();
-            charts.push(get_chart('Peercoin POW Difficulty','POW Difficulty',data,'container3',0));
+            charts.push(get_chart('Peercoin Minted Coins','Minted Coins',data,'container3',2));
         });
-        $.getJSON('/api/series/pos_difficulty/'+bc, function(data) {
+        $.getJSON('/api/series/destroyed_fees/'+bc, function(data) {
             $('#container4').empty();
-            charts.push(get_chart('Peercoin POS Difficulty','POS Difficulty',data,'container4',2));
+            charts.push(get_chart('Peercoin Destroyed Coins','Destroyed Coins',data,'container4',2));
         });
-        $.getJSON('/api/series/transactions/'+bc, function(data) {
+        $.getJSON('/api/series/pos_blocks/'+bc, function(data) {
             $('#container5').empty();
-            charts.push(get_chart('Peercoin Total Transactions','Total Transactions',data,'container5',0));
+            charts.push(get_chart('Peercoin POS Blocks','POS Blocks',data,'container5',0));
+        });
+        $.getJSON('/api/series/pow_blocks/'+bc, function(data) {
+            $('#container6').empty();
+            charts.push(get_chart('Peercoin POW Blocks','POW Blocks',data,'container6',0));
         });
     });
 
