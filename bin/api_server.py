@@ -520,7 +520,7 @@ config = {'/':
 }
 application = cherrypy.tree.mount(api,"/api",config)
 cherrypy.config.update({'error_page.404': error_404, 
-                        #'environment':'production',
+                        'environment':'production',
                         'log.error_file': '/app/logs/api_server.error.log',
                         'log.access_file': '/app/logs/api_server.access.log'})
 
