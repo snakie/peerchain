@@ -72,7 +72,7 @@ def hash_160(public_key):
   h2 = r160.digest()
   return h2
 
-def public_key_to_bc_address(public_key, version="\x00"):
+def public_key_to_bc_address(public_key, version="\x37"):
   if not have_crypto or public_key is None:
     return ''
   h160 = hash_160(public_key)

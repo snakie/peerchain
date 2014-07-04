@@ -10,6 +10,10 @@ except:
 def long_hex(bytes):
   return bytes.encode('hex_codec')
 
+def long_hex_rev(bytes):
+  bytes = bytes[::-1]
+  return bytes.encode('hex_codec')
+
 def short_hex(bytes):
   t = bytes.encode('hex_codec')
   if len(t) < 11:

@@ -39,7 +39,7 @@ function stats_to_row(stats) {
 function txn_to_row(tx) {
     var cells = []
     cells.push("<tr>");
-    cells.push("<td>"+tx.hash+"</td>");
+    cells.push("<td><a href=\"/api/tx/"+tx.hash+"\">"+tx.hash+"</a></td>");
     cells.push("<td><abbr class=\"timeago\" title=\""+tx.time+"\">"+tx.time+"</abbr></td>");
     cells.push("<td>"+number_commas(parseFloat(tx.value).toFixed(2))+"</td>");
     cells.push("</tr>");

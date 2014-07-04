@@ -8,7 +8,7 @@ from base58 import public_key_to_bc_address, hash_160_to_bc_address
 import logging
 import socket
 import time
-from util import short_hex, long_hex
+from util import short_hex, long_hex, long_hex_rev
 import struct
 
 def parse_CAddress(vds):
@@ -62,6 +62,16 @@ def deserialize_TxIn(d, transaction_index=None, owner_keys=None):
   if d['sequence'] < 0xffffffff: result += " sequence: "+hex(d['sequence'])
   return result
 
+def deserialize_TxIn_json(d, transaction_index=None, owner_keys=None):
+  result = {} 
+  result["previoustx"] = long_hex_rev(d['prevout_hash'])
+  result["previoustxindex"] = d['prevout_n']
+  result["peercoinaddress"] = extract_public_key(d['scriptSig'])
+  result["scriptsig"] = d['scriptSig'].encode('hex_codec')
+  result["scriptsig"] = result["scriptsig"][2:]
+
+  return result
+
 def parse_TxOut(vds):
   d = {}
   d['value'] = vds.read_int64()
@@ -77,6 +87,14 @@ def deserialize_TxOut(d, owner_keys=None):
     if pk in owner_keys: result += " Own: True"
     else: result += " Own: False"
   return result
+
+def deserialize_TxOut_json(d, owner_keys=None):
+  result = { 'value' : d['value']/1e6 }
+  pk = extract_public_key(d['scriptPubKey'])
+  result["peercoinaddress"] = pk
+  result["scriptpubkey"] = decode_script(d['scriptPubKey'])
+  return result
+
 
 def parse_Transaction(vds):
   d = {}
@@ -105,6 +123,15 @@ def deserialize_Transaction(d, transaction_index=None, owner_keys=None, print_ra
       result += "Transaction hex value: " + d['__data__'].encode('hex') + "\n"
   
   return result
+
+def deserialize_Transaction_json(d, transaction_index=None, owner_keys=None, print_raw_tx=False):
+  result = { 'inpoints' : [] , 'outpoints' : []}
+  for txIn in d['txIn']:
+    result['inpoints'].append(deserialize_TxIn_json(txIn, transaction_index)) 
+  for txOut in d['txOut']:
+    result['outpoints'].append(deserialize_TxOut_json(txOut, owner_keys))
+  return result
+  
 
 def parse_MerkleTx(vds):
   d = parse_Transaction(vds)
@@ -273,8 +300,8 @@ def decode_script(bytes):
   for (opcode, vch) in script_GetOp(bytes):
     if len(result) > 0: result += " "
     if opcode <= opcodes.OP_PUSHDATA4:
-      result += "%d:"%(opcode,)
-      result += short_hex(vch)
+      #result += "%d:"%(opcode,)
+      result += long_hex(vch)
     else:
       result += script_GetOpName(opcode)
   return result
@@ -289,7 +316,7 @@ def match_decoded(decoded, to_match):
       return False
   return True
 
-def extract_public_key(bytes, version='\x00'):
+def extract_public_key(bytes, version='\x37'):
   try:
     decoded = [ x for x in script_GetOp(bytes) ]
   except struct.error:
