@@ -413,8 +413,9 @@ class Peercoin(object):
         self.creds['user'],self.creds['password'],host='127.0.0.1', port=9902);
     def get_tx(self,txhash,skip=0):
         # validation txhash here
-        unparsed_tx = {'txOut': [{'value': 801770, 'scriptPubKey': 'v\xa9\x14\xf7z..\x0e\xae\xaf\x06.\x01H\x8b\x8b\xed\x07B\x1c$M\xc8\x88\xac'}, {'value': 79990000, 'scriptPubKey': 'v\xa9\x14\x0f .\xb3\xa0\x0c<\xcb\xc8Q\x87\xf3U\x15\x86\xf1\x1f\xb9\xebr\x88\xac'}], 'version': 1, 'time': 1404439844, 'lockTime': 0, '__data__': "\x01\x00\x00\x00$\r\xb6S\x01\x88\x99\xbc\x06/\x101s\x8cv'7j`\x02\x8a\xac\x98\xf6\x8eB\xbd\x83\xc2\xd8uI\xb1\xb8\xf3\x827\x00\x00\x00\x00lI0F\x02!\x00\xa2\xb2>>\x0c\x13Fn(>\xddq#\xe5\r\xba\x8c]\x86\xd2\xab\x85\x8ex\xb3\x12\xe5\x1cv\xba\xf2A\x02!\x00\xa8\xc6A\xc5\xab\xdb\xb4\x16V\xa9\xa4\xb8\x05M\x80\xa5\xc2.\x1aF\xe2\xd0&c\x92\x89,3xx\x05\xbd\x01!\x02\xe46\xc9\x9a\xae\xb1\x87\x90|\xb9BD%=\xbf\x95\x18m$*w\xcdL\x14\r\xad\xd4\x98\x84\x80\x1e\xe4\xff\xff\xff\xff\x02\xea;\x0c\x00\x00\x00\x00\x00\x19v\xa9\x14\xf7z..\x0e\xae\xaf\x06.\x01H\x8b\x8b\xed\x07B\x1c$M\xc8\x88\xac\xf0\x8c\xc4\x04\x00\x00\x00\x00\x19v\xa9\x14\x0f .\xb3\xa0\x0c<\xcb\xc8Q\x87\xf3U\x15\x86\xf1\x1f\xb9\xebr\x88\xac\x00\x00\x00\x00", 'txIn': [{'sequence': 4294967295, 'prevout_hash': "\x88\x99\xbc\x06/\x101s\x8cv'7j`\x02\x8a\xac\x98\xf6\x8eB\xbd\x83\xc2\xd8uI\xb1\xb8\xf3\x827", 'scriptSig': 'I0F\x02!\x00\xa2\xb2>>\x0c\x13Fn(>\xddq#\xe5\r\xba\x8c]\x86\xd2\xab\x85\x8ex\xb3\x12\xe5\x1cv\xba\xf2A\x02!\x00\xa8\xc6A\xc5\xab\xdb\xb4\x16V\xa9\xa4\xb8\x05M\x80\xa5\xc2.\x1aF\xe2\xd0&c\x92\x89,3xx\x05\xbd\x01!\x02\xe46\xc9\x9a\xae\xb1\x87\x90|\xb9BD%=\xbf\x95\x18m$*w\xcdL\x14\r\xad\xd4\x98\x84\x80\x1e\xe4', 'prevout_n': 0}]}
-        #'''
+        txhash = txhash.lower()
+        if not re.match(r'^[a-f0-9]{64}$',txhash):
+            return {"error" : "invalid transaction hash format"}
         try:
             print "trying ppcoind"
             tx = self.conn.gettransaction(txhash)
@@ -437,23 +438,21 @@ class Peercoin(object):
             if tx["hash"] == txhash:
                 txdata = tx["data"]
                 break
-        #'''
-        #txdata = 1
         if txdata:
             raw = BCDataStream()
             raw.write(txdata.decode('hex_codec'))
             tx = parse_Transaction(raw)
-            #tx = unparsed_tx
             dtx = deserialize_Transaction_json(tx)
             dtx["confirmations"] = 0
             dtx["txid"] = txhash;
             dtx['time'] = datetime.datetime.utcfromtimestamp(tx["time"]).strftime("%Y-%m-%d %H:%M:%S+0000")
-            print dtx
+            #print dtx
             for inp in dtx["inpoints"]:
                 old_tx = self.get_tx(inp["previoustx"])
-                print old_tx
+                #print old_tx
                 inp['value'] = old_tx['outpoints'][inp["previoustxindex"]]['value']
                 inp['scriptpubkey'] = old_tx['outpoints'][inp["previoustxindex"]]['scriptpubkey']
+                inp['peercoinaddress'] = old_tx['outpoints'][inp["previoustxindex"]]['peercoinaddress']
             return dtx;
         cherrypy.response.status = 500
         return {'error' : 'tx not found'}
