@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/app/virt/bin/python
 
 import sys
 sys.stdout = sys.stderr
@@ -483,6 +483,166 @@ class Index(object):
     compare/<first_id>/<second_id> - compare network stats for two block heights
     compare/delta/<id>/<delta> - compare network stats for a block 'id' and block 'id-delta'
     compare/last/<delta> - compare last block and 'last block - delta' network stats
+
+  Please find examples below at block height 152408:
+ 
+    Block Count: 
+      http://peerchain.net/api/blocks/count 
+
+      152408
+
+    Block Info: 
+      http://peerchain.net/api/blocks/last
+      http://peerchain.net/api/blocks/152408
+
+    {
+    "bits": "1c0e0f2c", 
+    "chain": 0, 
+    "destroyed": "0.000000", 
+    "difficulty": 18.208355220000001, 
+    "hash": "93e353975d62518bc218136f249e990d32d01f0c7ea6fd8708ce5b70a11c154b", 
+    "hashMerkleRoot": "eec6bb63cfd7e22d677c4848944c5082bcc997d60598f28915f9529a69d08d1a", 
+    "hashPrevBlock": "dd475bb728a2dcec663acab9c4d69e7535e982504bda06daf00ef999fad76d1c", 
+    "id": 152408, 
+    "nonce": 0, 
+    "pos": "true", 
+    "received": "0.000000", 
+    "reward": "0.570000", 
+    "sent": "0.000000", 
+    "stakeage": "222.83", 
+    "staked": "94.930000", 
+    "time": "2015-01-07 03:13:46+0000", 
+    "txcount": 0
+    }  
+
+    Similar to above but with more blocks:
+      http://peerchain.net/api/blocks/last/2
+
+    {
+    "blocks": [
+        {
+            ..snip..
+            "id": 152408, 
+            ..snip..
+        }, 
+        {
+            ..snip..
+            "id": 152407, 
+            ..snip..
+        }
+    ], 
+    "last": 152408
+    }
+
+    Transaction Info:
+      http://peerchain.net/api/tx/bb649a3a9bc710252a609b4b25049f00b04ab989a90c6c9e5ec1bb767fea5fea
+
+    {
+    "confirmations": 4, 
+    "inpoints": [
+        {
+            "bitcoinaddress": "PEhzRs1MJMrEkHvBqCyyvMbSjhaC7yVtqH", 
+            "pubkey": "OP_DUP OP_HASH160 431ab67971232efffb26d377e2c1c8dbefc88575 OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "542.901035"
+        }, 
+        {
+            "bitcoinaddress": "PCREfAFgLZnm1sutAhHqVYphSGACh72cug", 
+            "pubkey": "OP_DUP OP_HASH160 29ff4492c86fa85ae68a24484510578fc1648904 OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "3960.000000"
+        }
+    ], 
+    "outpoints": [
+        {
+            "bitcoinaddress": "PRicVegRocMEYxdF6exARPKaeNZ4zPRWXn", 
+            "pubkey": "OP_DUP OP_HASH160 bbe233c4018538bb0f756a4d597db657ea1ec5e4 OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "1000.000000"
+        }, 
+        {
+            "bitcoinaddress": "PJGLXLnN1E1zVs15DYYuMRHSiL7c6z8dSH", 
+            "pubkey": "OP_DUP OP_HASH160 6a212cc864a0958cb1984920aebb3b4a5fb41b35 OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "502.891035"
+        }, 
+        {
+            "bitcoinaddress": "PAsYCTzvjhjMSvopuEaXbpgS4m4X6YgCfV", 
+            "pubkey": "OP_DUP OP_HASH160 190879068e1cb8025e02bca170587504cba5b5d7 OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "1000.000000"
+        }, 
+        {
+            "bitcoinaddress": "PVvBiQk6yt1ArB7itRkESMuxa1QHLbv4YU", 
+            "pubkey": "OP_DUP OP_HASH160 e9f302f6e38319d8b70377ab62cc900bfdba49ca OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "1000.000000"
+        }, 
+        {
+            "bitcoinaddress": "PFTEhDU7wu5g651Pd6j3hQnNSqZXdfjW5G", 
+            "pubkey": "OP_DUP OP_HASH160 4b4881b8897a4a0f554e586e0e8cdc6c5847f8c7 OP_EQUALVERIFY OP_CHECKSIG", 
+            "value": "1000.000000"
+        }
+    ], 
+    "time": "2015-01-07 03:00:09+0000", 
+    "txid": "bb649a3a9bc710252a609b4b25049f00b04ab989a90c6c9e5ec1bb767fea5fea"
+    }
+
+    Network Statistics:
+      http://peerchain.net/api/network/152408
+      http://peerchain.net/api/network/last
+
+    {
+    "destroyed_fees": "5061.350508", 
+    "last_block": 152408, 
+    "mined_coins": "21777389.320000", 
+    "minted_coins": "219929.820000", 
+    "money_supply": "21992257.789492", 
+    "pos_blocks": 116244, 
+    "pos_difficulty": "18.20835522", 
+    "pow_block_reward": "79.610000", 
+    "pow_blocks": 36165, 
+    "pow_difficulty": 248904953.27599999, 
+    "time": "2015-01-07 03:13:46+0000", 
+    "transactions": 408018
+    } 
+
+    Similar to above but with more data:
+      http://peerchain.net/api/network/last/2
+
+    {
+    "data": [
+        {
+            ..snip..
+            "last_block": 152408, 
+            ..snip..
+        }, 
+        {
+            ..snip..
+            "last_block": 152407, 
+            ..snip..
+        }
+    ], 
+    "last": 152408
+    }
+
+    Compare the  last 8 blocks:
+      http://peerchain.net/api/compare/152408/152400
+      http://peerchain.net/api/compare/last/8
+      http://peerchain.net/api/compare/delta/152408/8
+
+    {
+    "block_delta": 2016, 
+    "destroyed_fees_delta": "50.461375", 
+    "duration": "12 days, 0:20:42", 
+    "first_block": 150392, 
+    "inflation_rate": "3.75", 
+    "last_block": 152408, 
+    "mined_coins_delta": "22741.460000", 
+    "minted_coins_delta": "4430.130000", 
+    "money_supply_delta": "27121.128625", 
+    "money_supply_end": "21992257.789492", 
+    "pos_blocks_delta": 1732, 
+    "pos_difficulty_delta": "0.16475234", 
+    "pow_block_reward_delta": "-0.690000", 
+    "pow_blocks_delta": 284, 
+    "pow_difficulty_delta": "8488094.71700001", 
+    "transactions": 4460
+    }
        """;
         cherrypy.response.headers['Content-Type'] = "text/plain"
         return usage
