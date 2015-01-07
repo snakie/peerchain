@@ -535,51 +535,34 @@ class Index(object):
     }
 
     Transaction Info:
-      http://peerchain.net/api/tx/bb649a3a9bc710252a609b4b25049f00b04ab989a90c6c9e5ec1bb767fea5fea
+      http://peerchain.net/api/tx/9faa5fadfd9b84448c3ee7fb381f69469587bac57a0432edd71e894ceb302517
 
     {
-    "confirmations": 4, 
+    "confirmations": 0, 
     "inpoints": [
         {
-            "bitcoinaddress": "PEhzRs1MJMrEkHvBqCyyvMbSjhaC7yVtqH", 
-            "pubkey": "OP_DUP OP_HASH160 431ab67971232efffb26d377e2c1c8dbefc88575 OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "542.901035"
-        }, 
-        {
-            "bitcoinaddress": "PCREfAFgLZnm1sutAhHqVYphSGACh72cug", 
-            "pubkey": "OP_DUP OP_HASH160 29ff4492c86fa85ae68a24484510578fc1648904 OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "3960.000000"
+            "peercoinaddress": "PVcfdVWNEaUjr8mcaExyBnmpubAL2S3rSE", 
+            "previoustx": "b856bc29f2602a57608c7413beb877b3d8c8e4099ea4856bf25013e183ad1d89", 
+            "previoustxindex": 0, 
+            "scriptpubkey": "OP_DUP OP_HASH160 e6a2d3a34cbabc8816eb79dda74c6589aa9c8e52 OP_EQUALVERIFY OP_CHECKSIG", 
+            "scriptsig": "30440220122ef4ee39eaa1e0320dd5fb48f4271d07d9637cc82c30b7c35fb17ae7a4256d02203964d54365f708d6ad8817149952906428551b35994e2556705d57fa8c464e9d0121039e543378a861023ae05dd2ceacd0325c89d88b6f73e9923edb6fb32791a6a46a", 
+            "value": "1.774058"
         }
     ], 
     "outpoints": [
         {
-            "bitcoinaddress": "PRicVegRocMEYxdF6exARPKaeNZ4zPRWXn", 
-            "pubkey": "OP_DUP OP_HASH160 bbe233c4018538bb0f756a4d597db657ea1ec5e4 OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "1000.000000"
+            "peercoinaddress": "PBU3M1TmSBJB9FufYpzaDLddxSkmsYufhd", 
+            "scriptpubkey": "DUP HASH160 1f8ef2463e7d4cd587ff9009a0570f7f6ea7c6c5 EQUALVERIFY CHECKSIG", 
+            "value": 0.104143
         }, 
         {
-            "bitcoinaddress": "PJGLXLnN1E1zVs15DYYuMRHSiL7c6z8dSH", 
-            "pubkey": "OP_DUP OP_HASH160 6a212cc864a0958cb1984920aebb3b4a5fb41b35 OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "502.891035"
-        }, 
-        {
-            "bitcoinaddress": "PAsYCTzvjhjMSvopuEaXbpgS4m4X6YgCfV", 
-            "pubkey": "OP_DUP OP_HASH160 190879068e1cb8025e02bca170587504cba5b5d7 OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "1000.000000"
-        }, 
-        {
-            "bitcoinaddress": "PVvBiQk6yt1ArB7itRkESMuxa1QHLbv4YU", 
-            "pubkey": "OP_DUP OP_HASH160 e9f302f6e38319d8b70377ab62cc900bfdba49ca OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "1000.000000"
-        }, 
-        {
-            "bitcoinaddress": "PFTEhDU7wu5g651Pd6j3hQnNSqZXdfjW5G", 
-            "pubkey": "OP_DUP OP_HASH160 4b4881b8897a4a0f554e586e0e8cdc6c5847f8c7 OP_EQUALVERIFY OP_CHECKSIG", 
-            "value": "1000.000000"
+            "peercoinaddress": "PWTyLxNYwgEkCtEvan8SrfMn4ZPoHgtnZb", 
+            "scriptpubkey": "DUP HASH160 eff5ff192699fa019e81449ab243863cfc6f9fa5 EQUALVERIFY CHECKSIG", 
+            "value": 1.659915
         }
     ], 
-    "time": "2015-01-07 03:00:09+0000", 
-    "txid": "bb649a3a9bc710252a609b4b25049f00b04ab989a90c6c9e5ec1bb767fea5fea"
+    "time": "2015-01-07 04:24:16+0000", 
+    "txid": "9faa5fadfd9b84448c3ee7fb381f69469587bac57a0432edd71e894ceb302517"
     }
 
     Network Statistics:

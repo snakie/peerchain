@@ -291,7 +291,7 @@ def script_GetOp(bytes):
 
 def script_GetOpName(opcode):
   try:
-    return (opcodes.whatis(opcode)).replace("OP_", "")
+    return opcodes.whatis(opcode)
   except KeyError:
     return "InvalidOp_"+str(opcode)
 
