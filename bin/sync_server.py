@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/python
 
 import bitcoinrpc, re, os, time, dateutil.parser, sys, datetime, httplib, json, logging, pytz 
 from dateutil.tz import tzlocal
